@@ -1,0 +1,66 @@
+/* ============================================================
+   variables.css —— 课程助教系统设计令牌（浅色清新主题）
+   参考：Linear / Notion / 微信读书 / 教育类产品
+   ============================================================ */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  /* ---- 背景色 ---- */
+  --bg-page: #F8FAFC;            /* 页面背景：浅灰蓝 */
+  --bg-card: #FFFFFF;            /* 卡片 / 侧栏背景：纯白 */
+  --bg-sidebar: #FFFFFF;
+  --bg-input: #FFFFFF;           /* 输入框背景：纯白 */
+  --bg-hover: #F1F5F9;           /* 悬停背景：浅灰 */
+  --bg-active: rgba(59, 130, 246, .12);
+
+  /* ---- 文字色 ---- */
+  --text-primary: #1E293B;       /* 主文字：深灰蓝 */
+  --text-secondary: #64748B;     /* 次要文字：中灰 */
+  --text-muted: #94A3B8;         /* 弱化文字：浅灰 */
+
+  /* ---- 强调色 ---- */
+  --accent: #3B82F6;             /* 主色：科技蓝 */
+  --accent-hover: #2563EB;       /* 悬停：深蓝 */
+  --accent-purple: #8B5CF6;
+  --accent-cyan: #06B6D4;
+  --success: #10B981;
+  --warning: #F59E0B;
+  --danger: #EF4444;
+
+  /* ---- 渐变与光晕 ---- */
+  --gradient-primary: linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%);
+  --gradient-glow: radial-gradient(circle, rgba(59, 130, 246, .10) 0%, transparent 70%);
+
+  /* ---- 边框与阴影 ---- */
+  --border: #E2E8F0;             /* 细边框 */
+  --border-strong: #CBD5E1;      /* 中等边框 */
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, .05);
+  --shadow-md: 0 4px 6px rgba(15, 23, 42, .07);
+  --shadow-lg: 0 10px 20px rgba(15, 23, 42, .10);
+  --shadow-glow: 0 0 20px rgba(59, 130, 246, .20);
+
+  /* ---- 圆角 ---- */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+
+  /* ---- 间距 ---- */
+  --sp-xs: .5rem;    /* 8px */
+  --sp-sm: .75rem;   /* 12px */
+  --sp-md: 1rem;     /* 16px */
+  --sp-lg: 1.5rem;   /* 24px */
+  --sp-xl: 2rem;     /* 32px */
+
+  /* ---- 字体 ---- */
+  --font-sans: 'Inter', -apple-system, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Consolas', monospace;
+
+  /* ---- 尺寸 ---- */
+  --nav-h: 60px;
+  --input-h: 44px;
+
+  /* ---- 转场 ---- */
+  --t-fast: .15s ease;
+  --t-normal: .3s ease;
+}

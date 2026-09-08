@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% block title %}试题生成{% endblock %}
+{% block nav_questions %}class="active"{% endblock %}
+{% import "components/dropdown.html" as dd %}
+
+{% block head %}
+<style>
+  /* ===== 试题生成页（浅色） ===== */
+  .gen-form { display: grid; grid-template-columns: 1fr 1fr; gap: 18px 20px; align-items: end; }
+  .gen-form .full { grid-column: 1 / -1; }
+  .gen-form label { margin: 0 0 6px; color: var(--text-primary); }
+  .gen-form .submit-row { grid-column: 1 / -1; display: flex; gap: 12px; align-items: center; margin-top: 8px; }
+  /* 输入控件复用 base.css 规范样式，与知识库/批改页保持一致 */
+  .gen-form select, .gen-form input {
+    height: var(--input-h);
+    border: 1px solid var(--border-strong);
+    background: var(--bg-input);
+  }
+
+  .q-type { 
+    display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; padding: 2px 9px; border-radius: 999px;
+    background: rgba(6,182,212,.14); color: #0891B2; 
+  }
+  .empty-questions { text-align: center; color: var(--text-muted); padding: 40px 0; }
+  .empty-questions i.ri { font-size: 34px; color: #CBD5E1; display: block; margin-bottom: 10px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1><i class="ri-edit-circle-line" aria-hidden="true"></i>试题生成</h1>
+    <div class="sub">由 Question Agent 根据知识点与难度批量生成题目</div>
+  </div>
+</div>
+
+<div class="card">
+  <h2><i class="ri-sparkling-2-line" aria-hidden="true"></i>AI 批量出题</h2>
+  <form method="post" action="/questions/generate" class="gen-form" id="genForm" novalidate>
+    <div>
+      <label for="courseSelect">选择课程</label>
+      <input type="hidden" id="courseSelect" name="course_id" required value="{{ courses[0].id if courses else '' }}">
+      {% set course_opts = [] %}
+      {% for c in courses %}{% if loop.first %}{% set _ = course_opts.append({'value': c.id, 'label': c.name, 'selected': true, 'icon': 'ri-book-open-line'}) %}{% else %}{% set _ = course_opts.append({'value': c.id, 'label': c.name, 'selected': false, 'icon': 'ri-book-open-line'}) %}{% endif %}{% endfor %}
+      {{ dd.dropdown_standard('courseWrap', course_opts, {'placeholder': '选择课程…', 'search': true, 'triggerIcon': 'ri-book-open-line'}) }}
+    </div>
+    <div class="full">
+      <label for="topic">知识点</label>
+      <input type="text" id="topic" name="topic" required placeholder="例如：二叉树遍历、排序算法时间复杂度" value="{{ request.query_params.get('topic','') }}">
+    </div>
+    <div>
+      <label for="num">题目数量</label>
+      <input type="number" id="num" name="num" value="3" min="1" max="10">
+    </div>
+    <div>
+      <label for="difficulty">难度</label>
+      <input type="number" id="difficulty" name="difficulty" value="3" min="1" max="5" aria-label="难度（1-5）">
+    </div>
+    <div class="submit-row">
+      <button type="submit" class="btn btn-grad" id="genBtn"><i class="ri-lightbulb-flash-line" aria-hidden="true"></i> 生成试题</button>
+    </div>
+  </form>
+
+  {% if msg %}<div class="msg ok"><i class="ri-checkbox-circle-line"></i>{{ msg }}</div>{% endif %}
+  {% if err %}<div class="msg err"><i class="ri-error-warning-line"></i>{{ err }}</div>{% endif %}
+</div>
+
+<div class="card" style="margin-top:18px;">
+  <div class="section-head" style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;">
+    <h2 style="margin:0;"><i class="ri-stack-line" aria-hidden="true"></i>试题库列表</h2>
+    <span style="display:flex;align-items:center;gap:10px;">
+      <span style="color:var(--text-muted);font-size:12.5px;">共 {{ questions|length }} 题</span>
+      <a href="/questions/recycle" class="btn btn-ghost" style="min-height:36px;padding:6px 12px;font-size:12.5px;"><i class="ri-delete-bin-line"></i> 回收站</a>
+    </span>
+  </div>
+  <div class="table-wrap">
+    <table aria-label="试题库列表">
+      <thead>
+        <tr><th>ID</th><th>题型</th><th>题干</th><th class="num">难度</th><th>来源</th><th>操作</th></tr>
+      </thead>
+      <tbody id="qTbody">
+        {% for q in questions %}
+        <tr>
+          <td class="td-mono">{{ q.id }}</td>
+          <td><span class="q-type"><i class="ri-question-line" style="margin-right:2px;"></i>{{ q.type }}</span></td>
+          <td style="max-width:360px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ q.stem[:60] }}</td>
+          <td class="num">{{ q.difficulty }}</td>
+          <td><span class="badge {{ 'b-info' if q.source=='ai' else 'b-off' }}">{{ q.source }}</span></td>
+          <td><button class="btn btn-ghost" style="min-height:34px;padding:5px 12px;font-size:12.5px;color:var(--danger);border-color:rgba(239,68,68,.35);" onclick="window.__delQuestion({{ q.id }})"><i class="ri-delete-bin-line"></i> 删除</button></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" class="empty-questions"><i class="ri-file-edit-line"></i>暂无试题，请先生成</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  (function () {
+    const form = document.getElementById('genForm');
+    const btn = document.getElementById('genBtn');
+
+    // 下拉框选择课程 → 写入隐藏 input
+    const courseWrap = document.getElementById('courseWrap');
+    const courseInput = document.getElementById('courseSelect');
+    function readCourseSel() {
+      const s = courseWrap.querySelector('.dropdown-item.selected');
+      if (s) courseInput.value = s.getAttribute('data-value');
+    }
+    readCourseSel();
+    courseWrap.addEventListener('dropdown-change', readCourseSel);
+
+    // 删除题目（软删除，可回收站恢复）
+    window.__delQuestion = async function (id) {
+      if (!confirm('删除后可在回收站恢复，确定继续？')) return;
+      try {
+        const r = await fetch('/api/question/' + id, { method: 'DELETE' });
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.detail || 'HTTP ' + r.status);
+        const tr = Array.from(document.querySelectorAll('#qTbody tr')).find(tr => tr.querySelector('.td-mono') && tr.querySelector('.td-mono').textContent.trim() === String(id));
+        if (tr) tr.remove();
+        toast('已移入回收站');
+      } catch (e) { toast('删除失败：' + e.message, 'error'); }
+    };
+
+    // 难度输入框：纯数字，无需额外渲染
+
+    form.addEventListener('submit', function (e) {
+      if (!form.topic.value.trim()) { e.preventDefault(); toast('请填写知识点', 'error'); return; }
+      btn.disabled = true; btn.classList.add('loading');
+      btn.innerHTML = '<i class="ri-loader-4-line spinner" aria-hidden="true"></i> 生成中…';
+    });
+  })();
+</script>
+{% endblock %}

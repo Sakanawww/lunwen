@@ -1,0 +1,22 @@
+# 密钥与本地配置——严禁提交（密钥也不得写入论文）
+.env
+.fernet_key
+
+# Python 缓存 / 虚拟环境
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# 安全扫描工具本地状态
+.mimosa/
+
+# 运行时数据（含上传文件与向量索引）
+data/uploads/
+data/faiss_index/
+
+# 测试缓存
+.pytest_cache/
+
+# 日志
+*.log

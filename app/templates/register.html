@@ -1,0 +1,568 @@
+{% extends "base.html" %}
+{% block title %}注册 · 课程助教系统{% endblock %}
+
+{% block head %}
+<style>
+  /* 注册页：双栏（品牌展示 + 注册表单）· 紫色系渐变品牌面板 */
+  html, body { height: 100%; }
+  body {
+    background: var(--bg-page);
+    overflow-x: hidden;
+  }
+
+  .register-page {
+    min-height: calc(100vh - var(--nav-h));
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  /* ============ 左侧品牌面板 ============ */
+  .brand-panel {
+    position: relative;
+    overflow: hidden;
+    color: #fff;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 56px;
+  }
+  /* 浮动光斑装饰 */
+  .brand-panel::before,
+  .brand-panel::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(6px);
+    pointer-events: none;
+  }
+  .brand-panel::before {
+    top: -30%;
+    right: -18%;
+    width: 480px; height: 480px;
+    background: radial-gradient(circle, rgba(255,255,255,.16) 0%, transparent 65%);
+    animation: floatA 24s ease-in-out infinite;
+  }
+  .brand-panel::after {
+    bottom: -22%;
+    left: -12%;
+    width: 420px; height: 420px;
+    background: radial-gradient(circle, rgba(167,139,250,.22) 0%, transparent 65%);
+    animation: floatB 30s ease-in-out infinite;
+  }
+  @keyframes floatA {
+    0%,100% { transform: translate(0,0) scale(1); }
+    50%     { transform: translate(-40px,30px) scale(1.08); }
+  }
+  @keyframes floatB {
+    0%,100% { transform: translate(0,0) scale(1); }
+    50%     { transform: translate(30px,-40px) scale(1.06); }
+  }
+
+  .brand-content {
+    max-width: 460px;
+    position: relative;
+    z-index: 2;
+  }
+  .logo-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 28px;
+  }
+  .logo-badge {
+    width: 54px; height: 54px;
+    border-radius: 16px;
+    background: rgba(255,255,255,.22);
+    border: 1px solid rgba(255,255,255,.35);
+    display: grid; place-items: center;
+    font-size: 26px;
+    box-shadow: 0 8px 20px rgba(0,0,0,.18);
+  }
+  .logo-row h1 {
+    font-size: 26px;
+    font-weight: 700;
+    margin: 0;
+    letter-spacing: .5px;
+  }
+  .slogan {
+    font-size: 17px;
+    line-height: 1.7;
+    opacity: .94;
+    margin: 0 0 40px;
+  }
+  .slogan-en {
+    display: block;
+    font-size: 13.5px;
+    opacity: .72;
+    margin-top: 6px;
+    font-weight: 400;
+  }
+
+  .feature-list { margin-bottom: 40px; }
+  .feature-item {
+    display: flex;
+    gap: 16px;
+    padding: 18px 20px;
+    margin-bottom: 14px;
+    background: rgba(255,255,255,.12);
+    border: 1px solid rgba(255,255,255,.22);
+    border-radius: 16px;
+    backdrop-filter: blur(8px);
+    transition: transform var(--t-normal);
+  }
+  .feature-item:hover { transform: translateX(8px); }
+  .feature-icon {
+    flex-shrink: 0;
+    width: 42px; height: 42px;
+    border-radius: 12px;
+    background: rgba(255,255,255,.2);
+    display: grid; place-items: center;
+    font-size: 20px;
+  }
+  .feature-content h4 { font-size: 16px; margin: 0 0 3px; font-weight: 600; }
+  .feature-content p  { font-size: 13.5px; margin: 0; opacity: .8; }
+
+  .brand-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+    padding-top: 26px;
+    border-top: 1px solid rgba(255,255,255,.2);
+  }
+  .stat-item { text-align: center; }
+  .stat-number {
+    display: block;
+    font-size: 26px;
+    font-weight: 700;
+    margin-bottom: 2px;
+  }
+  .stat-label { font-size: 12.5px; opacity: .78; }
+
+  /* ============ 右侧表单面板 ============ */
+  .form-panel {
+    background: var(--bg-page);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 32px;
+  }
+  .form-card {
+    width: 100%;
+    max-width: 440px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    box-shadow: var(--shadow-lg);
+    padding: 30px 32px 22px;
+    animation: riseIn .45s ease both;
+  }
+  @keyframes riseIn {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .form-title {
+    font-size: 21px;
+    font-weight: 700;
+    margin: 0;
+    background: var(--gradient-primary);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .form-subtitle {
+    color: var(--text-muted);
+    font-size: 13.5px;
+    margin: 6px 0 24px;
+  }
+
+  .form-group { margin-bottom: 22px; }
+  .form-label {
+    display: block;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+  }
+
+  .input-wrap { position: relative; }
+  .input-wrap .fa-prefix {
+    position: absolute; left: 14px; top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    font-size: 16px;
+    pointer-events: none;
+    transition: color var(--t-fast);
+  }
+  .input-wrap input {
+    width: 100%; min-height: var(--input-h);
+    padding: 10px 14px 10px 42px;
+    font-size: 14.5px; font-family: inherit;
+    color: var(--text-primary);
+    background: var(--bg-input);
+    border: 2px solid var(--border);
+    border-radius: var(--radius-md);
+    outline: none;
+    transition: border-color var(--t-fast), box-shadow var(--t-fast);
+  }
+  .input-wrap input::placeholder { color: var(--text-muted); }
+  .input-wrap:focus-within .fa-prefix { color: var(--accent); }
+  .input-wrap input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 4px rgba(59,130,246,.12), 0 4px 12px rgba(59,130,246,.12);
+  }
+  .input-wrap input.invalid { border-color: var(--danger); }
+  .form-hint {
+    display: none;
+    align-items: center;
+    gap: 5px;
+    margin-top: 6px;
+    font-size: 12.5px;
+    color: var(--danger);
+  }
+  .form-hint.show { display: flex; }
+
+  /* 角色卡片选择器 */
+  .role-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-top: 4px;
+  }
+  .role-card { position: relative; cursor: pointer; }
+  .role-card input { position: absolute; opacity: 0; pointer-events: none; }
+  .role-card-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 18px 12px 14px;
+    background: var(--bg-card);
+    border: 2px solid var(--border);
+    border-radius: var(--radius-lg);
+    transition: all var(--t-fast);
+  }
+  .role-icon { font-size: 30px; line-height: 1; }
+  .role-info h4 { font-size: 15px; margin: 0; font-weight: 600; color: var(--text-primary); }
+  .role-info p  { font-size: 11.5px; margin: 2px 0 0; color: var(--text-muted); }
+  .role-check {
+    position: absolute; top: 10px; right: 10px;
+    width: 22px; height: 22px;
+    background: var(--accent); color: #fff;
+    border-radius: 50%;
+    display: grid; place-items: center;
+    font-size: 13px;
+    opacity: 0;
+    transform: scale(.4);
+    transition: all var(--t-fast);
+  }
+  .role-card:hover .role-card-content {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+  }
+  .role-card input:checked + .role-card-content {
+    border-color: var(--accent);
+    background: linear-gradient(135deg, #eff6ff 0%, #faf5ff 100%);
+  }
+  .role-card input:checked + .role-card-content .role-check {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  /* 密码强度 */
+  .strength-bar {
+    height: 5px;
+    margin-top: 14px;
+    background: var(--border);
+    border-radius: 999px;
+    overflow: hidden;
+  }
+  .strength-fill {
+    height: 100%;
+    width: 0%;
+    border-radius: 999px;
+    background: var(--border-strong);
+    transition: width var(--t-normal), background var(--t-normal);
+  }
+  .strength-fill.lvl1 { width: 25%; background: var(--danger); }
+  .strength-fill.lvl2 { width: 50%; background: var(--warning); }
+  .strength-fill.lvl3 { width: 75%; background: var(--accent); }
+  .strength-fill.lvl4 { width: 100%; background: var(--success); }
+  .strength-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 8px;
+  }
+  .strength-text { font-size: 12.5px; color: var(--text-secondary); }
+  .strength-char { font-family: var(--font-mono); font-size: 12px; color: var(--text-muted); }
+
+  /* 按钮 */
+  .btn-block { width: 100%; margin-top: 4px; }
+  .register-btn {
+    width: 100%;
+    min-height: 48px;
+    font-size: 16px; font-weight: 600;
+    color: #fff;
+    background: var(--gradient-primary);
+    border: none;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    position: relative;
+    box-shadow: 0 6px 18px rgba(102,126,234,.35);
+    transition: transform var(--t-fast), box-shadow var(--t-fast);
+  }
+  .register-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 26px rgba(102,126,234,.45); }
+  .register-btn:active { transform: translateY(0); }
+  .register-btn.loading { color: transparent; pointer-events: none; }
+  .register-btn.loading::after {
+    content: '';
+    position: absolute; left: 50%; top: 50%;
+    width: 22px; height: 22px;
+    margin: -11px 0 0 -11px;
+    border: 2.5px solid #fff;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .form-foot {
+    text-align: center;
+    font-size: 13px;
+    color: var(--text-muted);
+    margin: 18px 0 2px;
+  }
+  .form-foot a { font-weight: 600; }
+
+  .msg { margin-top: 14px; }
+
+  /* ============ 响应式 ============ */
+  @media (max-width: 1024px) {
+    .register-page { grid-template-columns: 1fr; }
+    .brand-panel { display: none; }
+    .form-panel { min-height: calc(100vh - var(--nav-h)); }
+  }
+  @media (max-width: 480px) {
+    .form-card { padding: 24px 20px 18px; }
+    .role-options { grid-template-columns: 1fr; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="register-page" aria-label="注册区域">
+  <!-- 左侧品牌面板 -->
+  <div class="brand-panel" aria-hidden="true">
+    <div class="brand-content">
+      <div class="logo-row">
+        <div class="logo-badge"><i class="ri-graduation-cap-line"></i></div>
+        <h1>AI 课程助教系统</h1>
+      </div>
+
+      <p class="slogan">
+        让学习更高效，让教学更智能
+        <span class="slogan-en">Make Learning Efficient, Make Teaching Intelligent</span>
+      </p>
+
+      <div class="feature-list">
+        <div class="feature-item">
+          <div class="feature-icon"><i class="ri-robot-2-line"></i></div>
+          <div class="feature-content">
+            <h4>AI 智能答疑</h4>
+            <p>24/7 在线解答学习问题，即时响应</p>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon"><i class="ri-dashboard-3-line"></i></div>
+          <div class="feature-content">
+            <h4>学情数据看板</h4>
+            <p>可视化掌握度与答题情况，精准教学</p>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon"><i class="ri-checkbox-circle-line"></i></div>
+          <div class="feature-content">
+            <h4>智能批改 · 出题</h4>
+            <p>自动批改作业试题，一键智能出题</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="brand-stats">
+        <div class="stat-item">
+          <span class="stat-number">10+</span>
+          <span class="stat-label">精品课程</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-number">5000+</span>
+          <span class="stat-label">活跃学生</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-number">98%</span>
+          <span class="stat-label">好评率</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 右侧表单面板 -->
+  <div class="form-panel">
+    <div class="form-card">
+      <h2 class="form-title">创建账号</h2>
+      <p class="form-subtitle">加入 AI 助教系统，开启智能学习之旅</p>
+
+      <form method="post" action="/register" id="regForm" novalidate>
+        <div class="form-group role-group">
+          <label class="form-label">选择角色</label>
+          <div class="role-options">
+            <label class="role-card">
+              <input type="radio" name="role" value="student" {% if role!='teacher' %}checked{% endif %}>
+              <div class="role-card-content">
+                <div class="role-icon">👨‍🎓</div>
+                <div class="role-info">
+                  <h4>学生</h4>
+                  <p>选课学习，完成作业</p>
+                </div>
+                <span class="role-check"><i class="ri-check-line"></i></span>
+              </div>
+            </label>
+            <label class="role-card">
+              <input type="radio" name="role" value="teacher" {% if role=='teacher' %}checked{% endif %}>
+              <div class="role-card-content">
+                <div class="role-icon">👨‍🏫</div>
+                <div class="role-info">
+                  <h4>教师</h4>
+                  <p>创建课程，管理学生</p>
+                </div>
+                <span class="role-check"><i class="ri-check-line"></i></span>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="username">用户名（登录名）</label>
+          <div class="input-wrap">
+            <i class="ri-user-line fa-prefix" aria-hidden="true"></i>
+            <input type="text" id="username" name="username" required
+                   value="{{ username or '' }}" autocomplete="username" placeholder="字母/数字/下划线，至少 3 位">
+          </div>
+          <p class="form-hint" id="hint-username"><i class="ri-error-warning-line"></i><span></span></p>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="real_name">真实姓名</label>
+          <div class="input-wrap">
+            <i class="ri-id-card-line fa-prefix" aria-hidden="true"></i>
+            <input type="text" id="real_name" name="real_name" required
+                   value="{{ real_name or '' }}" autocomplete="name" placeholder="请输入真实姓名">
+          </div>
+          <p class="form-hint" id="hint-real_name"><i class="ri-error-warning-line"></i><span></span></p>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="password">设置密码</label>
+          <div class="input-wrap">
+            <i class="ri-lock-line fa-prefix" aria-hidden="true"></i>
+            <input type="password" id="password" name="password" required
+                   autocomplete="new-password" placeholder="至少 6 位">
+          </div>
+          <div class="strength-bar"><div class="strength-fill" id="strengthFill"></div></div>
+          <div class="strength-meta">
+            <span class="strength-text" id="strengthText">密码强度：</span>
+            <span class="strength-char" id="strengthChar" hidden></span>
+          </div>
+          <p class="form-hint" id="hint-password"><i class="ri-error-warning-line"></i><span></span></p>
+        </div>
+
+        {% if error %}<div class="msg err"><i class="ri-error-warning-line"></i>{{ error }}</div>{% endif %}
+        {% if msg %}<div class="msg ok"><i class="ri-checkbox-circle-line"></i>{{ msg }}</div>{% endif %}
+
+        <button type="submit" class="register-btn" id="regBtn">注 册</button>
+      </form>
+
+      <p class="form-foot">已有账号？<a href="/">返回登录</a></p>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  var form = document.getElementById('regForm');
+  var btn  = document.getElementById('regBtn');
+  var uInput = document.getElementById('username');
+  var nInput = document.getElementById('real_name');
+  var pInput = document.getElementById('password');
+  var sFill  = document.getElementById('strengthFill');
+  var sText  = document.getElementById('strengthText');
+  var sChar  = document.getElementById('strengthChar');
+
+  function hint(id, msg) {
+    var p = document.getElementById(id);
+    p.querySelector('span').textContent = msg || '';
+    p.classList.toggle('show', !!msg);
+  }
+  function mark(input, bad) {
+    input.classList.toggle('invalid', !!bad);
+  }
+
+  // 用户名：失焦时校验格式
+  uInput.addEventListener('blur', function () {
+    var v = uInput.value.trim();
+    if (!v) { hint('hint-username','请输入用户名'); mark(uInput,true); return; }
+    if (v.length < 3) { hint('hint-username','用户名至少 3 个字符'); mark(uInput,true); return; }
+    if (!/^[a-zA-Z0-9_]+$/.test(v)) { hint('hint-username','只能包含字母、数字和下划线'); mark(uInput,true); return; }
+    hint('hint-username',''); mark(uInput,false);
+  });
+
+  // 密码强度：实时检测
+  pInput.addEventListener('input', function () {
+    var pw = pInput.value;
+    var score = 0;
+    if (pw.length >= 6) score++;
+    if (pw.length >= 10) score++;
+    if (/[A-Z]/.test(pw)) score++;
+    if (/[0-9]/.test(pw)) score++;
+    if (/[^A-Za-z0-9]/.test(pw)) score++;
+
+    var labels = ['弱', '一般', '良好', '强'];
+    var level = Math.min(score, 4);
+    sFill.className = 'strength-fill' + (level ? ' lvl' + level : '');
+    sText.textContent = pw ? ('密码强度：' + labels[Math.max(level-1,0)]) : '密码强度：';
+    mark(pInput, false);
+
+    // 字符构成提示
+    var parts = [];
+    if (/[A-Z]/.test(pw)) parts.push('大写');
+    if (/[a-z]/.test(pw)) parts.push('小写');
+    if (/[0-9]/.test(pw)) parts.push('数字');
+    if (/[^A-Za-z0-9]/.test(pw)) parts.push('符号');
+    sChar.hidden = !pw;
+    sChar.textContent = pw ? ('含 ' + (parts.join(' ') || '字母')) : '';
+  });
+
+  form.addEventListener('submit', function (e) {
+    var ok = true;
+    var u = uInput.value.trim(), n = nInput.value.trim(), pw = pInput.value;
+
+    if (!u) { hint('hint-username','请输入用户名'); mark(uInput,true); ok=false; }
+    else if (u.length < 3) { hint('hint-username','用户名至少 3 个字符'); mark(uInput,true); ok=false; }
+    else if (!/^[a-zA-Z0-9_]+$/.test(u)) { hint('hint-username','只能包含字母、数字和下划线'); mark(uInput,true); ok=false; }
+    else { hint('hint-username',''); mark(uInput,false); }
+
+    if (!n) { hint('hint-real_name','请输入真实姓名'); mark(nInput,true); ok=false; }
+    else { hint('hint-real_name',''); mark(nInput,false); }
+
+    if (!pw) { hint('hint-password','请输入密码'); mark(pInput,true); ok=false; }
+    else if (pw.length < 6) { hint('hint-password','密码至少 6 位'); mark(pInput,true); ok=false; }
+    else { hint('hint-password',''); mark(pInput,false); }
+
+    if (!ok) { e.preventDefault(); return; }
+    btn.classList.add('loading'); btn.disabled = true;
+  });
+})();
+</script>
+{% endblock %}

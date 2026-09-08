@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% block title %}作业批改{% endblock %}
+{% block nav_grading %}class="active"{% endblock %}
+{% import "components/dropdown.html" as dd %}
+
+{% block head %}
+<style>
+  /* ===== 作业批改页（浅色） ===== */
+  .toolbar { display: flex; align-items: flex-end; gap: 14px; flex-wrap: wrap; }
+  .toolbar label { margin: 0 0 6px; color: var(--text-primary); }
+  .toolbar select { 
+    min-width: 240px; padding: 10px 36px 10px 12px; font-size: 13.5px;
+    background: #FFFFFF; border: 1px solid var(--border-strong);
+    border-radius: var(--radius-md); color: var(--text-primary); cursor: pointer;
+    appearance: none; -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 10px center; background-size: 18px;
+  }
+  .toolbar select:hover { border-color: var(--accent); }
+  .toolbar select:focus { outline: none; border-color: var(--accent); box-shadow: var(--shadow-glow); }
+  .toolbar select option { background: #FFFFFF; color: var(--text-primary); padding: 8px; }
+
+  .status-badge { font-size: 11.5px; font-weight: 500; padding: 2px 10px; border-radius: 999px; }
+.status-pending { background: rgba(245,158,11,.12); color: #B86A00; }
+.status-graded  { background: rgba(16,185,129,.12); color: #067647; }
+
+  .grade-sheet {
+    background: var(--bg-card); border: 1px solid var(--border-strong);
+    border-radius: var(--radius-lg); padding: 18px 20px; box-shadow: var(--shadow-md);
+  }
+  .grade-score { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .grade-score .score { font-size: 34px; font-weight: 700; color: var(--success); }
+  .grade-score .of { color: var(--text-muted); font-size: 14px; }
+  .grade-feedback { font-size: 13.5px; color: var(--text-secondary); white-space: pre-wrap; }
+
+  /* 空状态 */
+  .empty-grading { text-align: center; color: var(--text-muted); padding: 40px 0; }
+  .empty-grading i.ri { font-size: 34px; color: #CBD5E1; display: block; margin-bottom: 10px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1><i class="ri-checkbox-circle-line" aria-hidden="true"></i>作业批改</h1>
+    <div class="sub">由 Grading Agent 自动批改，返回得分与评语</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="toolbar">
+    <div>
+      <label for="courseSelect">选择课程</label>
+      <form method="get" action="/grading" id="courseForm">
+        <input type="hidden" name="course_id" id="courseSelect" value="{{ active_course }}">
+        {% set course_opts = [] %}
+        {% for c in courses %}{% set _ = course_opts.append({'value': c.id, 'label': c.name, 'selected': c.id == active_course, 'icon': 'ri-book-open-line'}) %}{% endfor %}
+        {{ dd.dropdown_standard('courseWrap', course_opts, {'placeholder': '选择课程…', 'search': true, 'triggerIcon': 'ri-book-open-line'}) }}
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="section-head" style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;">
+    <h2 style="margin:0;"><i class="ri-list-check-3" aria-hidden="true"></i>待批改 / 已批改提交</h2>
+    <span class="doc-stat" style="color:var(--text-muted);font-size:12.5px;">共 {{ subs|length }} 份</span>
+  </div>
+
+  <div class="table-wrap">
+    <table aria-label="作业提交列表">
+      <thead>
+        <tr><th>ID</th><th>作业</th><th>学生</th><th>内容摘要</th><th>状态</th><th>得分</th><th class="num">操作</th></tr>
+      </thead>
+      <tbody>
+        {% for s in subs %}
+        <tr>
+          <td class="td-mono">{{ s.id }}</td>
+          <td>{{ s.assignment_title }}</td>
+          <td>{{ s.student }}</td>
+          <td style="color:var(--text-secondary);max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ s.content }}</td>
+          <td>
+            {% if s.status == 'pending' %}
+              <span class="status-badge status-pending"><i class="ri-time-line" style="margin-right:3px;"></i>待批改</span>
+            {% else %}
+              <span class="status-badge status-graded"><i class="ri-check-double-line" style="margin-right:3px;"></i>{{ s.status }}</span>
+            {% endif %}
+          </td>
+          <td class="num"><strong>{{ s.score if s.score is not none else '—' }}</strong></td>
+          <td class="num">
+            {% if s.status == 'pending' %}
+              <button class="btn btn-grad" onclick="grade({{ s.id }})"><i class="ri-sparkling-2-line"></i> AI 批改</button>
+            {% else %}
+              <button class="btn btn-ghost" onclick="grade({{ s.id }})"><i class="ri-refresh-line"></i> 重新批改</button>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr class="empty-row"><td colspan="7" class="empty-grading"><i class="ri-inbox-archive-line"></i>暂无提交</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div id="result"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// 下拉框选择课程 → 写入隐藏 input 并提交表单
+(function () {
+  const wrap = document.getElementById('courseWrap');
+  const form = document.getElementById('courseForm');
+  const input = document.getElementById('courseSelect');
+  if (!wrap || !form) return;
+  wrap.addEventListener('dropdown-change', function (e) {
+    input.value = e.detail.value;
+    form.submit();
+  });
+})();
+
+async function grade(id) {
+  const result = document.getElementById('result');
+  result.innerHTML = '<div class="grade-sheet loading-pulse" style="opacity:.6;"><i class="ri-loader-4-line spinner" style="animation:spin .7s linear infinite;color:var(--accent);"></i> AI 批改中…</div>';
+  try {
+    const r = await fetch('/api/grade/' + id, { method: 'POST' });
+    const j = await r.json();
+    result.innerHTML =
+      '<div class="grade-sheet"><div class="grade-score"><span class="score">' + (j.score != null ? j.score : '--') + '</span>' +
+      '<span class="of">/ 100</span></div>' +
+      '<div class="grade-feedback">' + esc(j.feedback || '（无评语）') + '</div></div>';
+    setTimeout(() => location.reload(), 900);
+  } catch (e) {
+    result.innerHTML = '<div class="msg err"><i class="ri-error-warning-line"></i>批改失败，请稍后重试</div>';
+  }
+}
+function esc(s){ return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+</script>
+{% endblock %}

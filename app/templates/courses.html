@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block title %}课程管理{% endblock %}
+{% block nav_courses %}class="active"{% endblock %}
+
+{% block head %}
+<style>
+  /* ===== 课程管理页（浅色风格，与其余页面一致） ===== */
+  .course-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; margin-top: 18px; }
+  .course-card {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); padding: 18px 18px 14px; box-shadow: var(--shadow-sm);
+    display: flex; flex-direction: column; gap: 10px; transition: var(--t-normal);
+  }
+  .course-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); border-color: var(--border-strong); }
+  .course-card .c-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .course-card h3 { margin: 0; font-size: 16px; color: var(--text-primary); display: flex; align-items: center; gap: 8px; }
+  .course-card h3 i { color: var(--accent); }
+  .c-code { font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .c-desc { font-size: 13px; color: var(--text-secondary); flex: 1; margin: 0; line-height: 1.5; }
+  .c-meta { display: flex; align-items: center; justify-content: space-between; font-size: 12.5px; color: var(--text-muted); }
+  .c-actions { display: flex; gap: 8px; justify-content: flex-end; }
+  .c-actions .btn { min-height: 34px; padding: 5px 12px; font-size: 12.5px; }
+  .role-chip { font-size: 11.5px; padding: 2px 9px; border-radius: 999px; font-weight: 600; }
+  .role-owner { background: rgba(59,130,246,.14); color: #1D5FD0; }
+  .role-teacher { background: rgba(139,92,246,.14); color: #6D3FC0; }
+  .role-assistant { background: rgba(6,182,212,.14); color: #0891B2; }
+  .role-student { background: rgba(148,163,184,.14); color: #475569; }
+  .empty-courses { text-align: center; padding: 48px 0; color: var(--text-muted); }
+  .empty-courses i.ri { font-size: 42px; color: #CBD5E1; display: block; margin-bottom: 10px; }
+  .member-row { display: flex; align-items: center; justify-content: space-between; padding: 6px 2px; border-bottom: 1px dashed var(--border); font-size: 13px; }
+  .member-row:last-child { border-bottom: none; }
+  .member-row select { min-height: 30px; padding: 3px 6px; font-size: 12.5px; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--bg-input); }
+  .member-row .btn { min-height: 28px; padding: 2px 8px; font-size: 12px; }
+  .modal-member { max-height: 56vh; overflow-y: auto; }
+  .hint-line { font-size: 12.5px; color: var(--text-muted); margin-top: 6px; }
+
+  /* 弹窗 / 表单样式（与 Agent 配置页保持一致） */
+  .modal-mask {
+    position: fixed; inset: 0; background: rgba(15,23,42,.55);
+    display: flex; align-items: center; justify-content: center; z-index: 100; padding: 16px;
+    backdrop-filter: blur(2px);
+  }
+  .modal-mask[hidden] { display: none; }
+  .modal-box { width: 100%; max-width: 440px; background: var(--bg-card); border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); padding: 22px 24px; }
+  .modal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .modal-head h3 { font-size: 16px; margin: 0; }
+  .modal-close { background: none; border: none; font-size: 20px; color: var(--text-muted); cursor: pointer; padding: 6px; }
+  .modal-close:hover { color: var(--text-primary); }
+  .modal-foot { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }
+  .modal-foot .btn { min-height: 38px; padding: 0 16px; }
+  .form-row { display: flex; flex-direction: column; gap: 6px; margin-top: 14px; }
+  .form-row label { font-size: 13px; font-weight: 500; color: var(--text-primary); margin: 0; }
+  .form-row input, .form-row textarea {
+    width: 100%; box-sizing: border-box; padding: 10px 12px; font-size: 13.5px;
+    border: 1px solid var(--border-strong); border-radius: var(--radius-md); background: var(--bg-input);
+    color: var(--text-primary); font-family: inherit; resize: vertical;
+  }
+  .form-row input:focus, .form-row textarea:focus { outline: none; border-color: var(--accent); box-shadow: var(--shadow-glow); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1><i class="ri-book-open-line" aria-hidden="true"></i>课程管理</h1>
+    <div class="sub">创建、编辑课程，管理课程成员与角色（RBAC）</div>
+  </div>
+  {% if user['role'] in ('teacher','admin') %}
+  <button class="btn btn-grad" onclick="openModal('create')"><i class="ri-add-line"></i> 新建课程</button>
+  {% endif %}
+</div>
+
+<!-- 课程卡片列表 -->
+<div class="course-grid" id="courseGrid">
+  <div class="empty-courses"><i class="ri-loader-4-line spinner" style="animation:spin .8s linear infinite;"></i>加载中…</div>
+</div>
+
+<!-- 现有成员弹窗 -->
+<div class="modal-mask" id="membersMask" hidden>
+  <div class="modal-box card">
+    <div class="modal-head">
+      <h3 id="membersTitle">课程成员</h3>
+      <button class="modal-close" id="membersClose" aria-label="关闭">&times;</button>
+    </div>
+    <div class="modal-member" id="membersBody"></div>
+  </div>
+</div>
+
+<!-- 新建/编辑课程弹窗 -->
+<div class="modal-mask" id="editMask" hidden>
+  <div class="modal-box card">
+    <div class="modal-head">
+      <h3 id="editTitle">新建课程</h3>
+      <button class="modal-close" id="editClose" aria-label="关闭">&times;</button>
+    </div>
+    <form id="editForm" novalidate>
+      <input type="hidden" id="editId">
+      <div class="form-row">
+        <label for="editName">课程名称</label>
+        <input type="text" id="editName" required maxlength="100" placeholder="例如：数据结构">
+      </div>
+      <div class="form-row">
+        <label for="editCode">课程编号</label>
+        <input type="text" id="editCode" maxlength="30" placeholder="例如：CS2001">
+      </div>
+      <div class="form-row">
+        <label for="editDesc">课程简介</label>
+        <textarea id="editDesc" rows="3" maxlength="2000" placeholder="简要介绍本课程内容…"></textarea>
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="btn btn-ghost" id="editCancel">取消</button>
+        <button type="submit" class="btn btn-grad" id="editSubmit"><i class="ri-check-line"></i> 保存</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/courses.js"></script>
+{% endblock %}

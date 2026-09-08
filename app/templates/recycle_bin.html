@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}试题回收站{% endblock %}
+{% block nav_questions %}class="active"{% endblock %}
+{% import "components/dropdown.html" as dd %}
+
+{% block head %}
+<style>
+  .rb-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 16px; border-bottom: 1px solid var(--border);
+  }
+  .rb-item:last-child { border-bottom: none; }
+  .rb-item .rb-main { flex: 1; min-width: 0; }
+  .rb-item .rb-stem { font-size: 13.5px; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rb-item .rb-meta { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  .rb-item .rb-actions { display: flex; gap: 8px; flex-shrink: 0; }
+  .rb-empty { text-align: center; color: var(--text-muted); padding: 56px 20px; }
+  .rb-empty i { font-size: 40px; color: #CBD5E1; display: block; margin-bottom: 12px; }
+  .filter-row { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1><i class="ri-delete-bin-line" aria-hidden="true"></i>试题回收站</h1>
+    <div class="sub">已删除的试题可在此恢复</div>
+  </div>
+  <a href="/questions" class="btn btn-ghost"><i class="ri-arrow-left-line"></i> 返回试题库</a>
+</div>
+
+<div class="card">
+  <div class="filter-row">
+    <div style="width:220px;">
+      {% set course_opts = [] %}
+      {% for c in courses %}{% if c.id == active_course %}{% set _ = course_opts.append({'value': c.id, 'label': c.name, 'selected': true, 'icon': 'ri-book-open-line'}) %}{% else %}{% set _ = course_opts.append({'value': c.id, 'label': c.name, 'selected': false, 'icon': 'ri-book-open-line'}) %}{% endif %}{% endfor %}
+      {{ dd.dropdown_standard('courseWrap', course_opts, {'placeholder': '选择课程…', 'search': true, 'triggerIcon': 'ri-book-open-line'}) }}
+    </div>
+  </div>
+
+  <div>
+    {% for q in questions %}
+    <div class="rb-item" data-id="{{ q.id }}">
+      <div class="rb-icon" style="color:var(--danger);font-size:18px;flex-shrink:0;"><i class="ri-delete-bin-6-line"></i></div>
+      <div class="rb-main">
+        <div class="rb-stem">{{ q.stem[:60] }}</div>
+        <div class="rb-meta">删除于 {{ q.deleted_at.strftime('%Y-%m-%d %H:%M') if q.deleted_at else '—' }}</div>
+      </div>
+      <div class="rb-actions">
+        <button class="btn btn-ghost" onclick="window.__restoreQ({{ q.id }})"><i class="ri-refresh-line"></i> 恢复</button>
+        <button class="btn btn-ghost" style="color:var(--danger);border-color:rgba(239,68,68,.4);" onclick="window.__purgeQ({{ q.id }})"><i class="ri-delete-bin-2-line"></i> 彻底删除</button>
+      </div>
+    </div>
+    {% else %}
+    <div class="rb-empty" id="rbEmpty"><i class="ri-inbox-line"></i>回收站是空的</div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  (function () {
+    const courseWrap = document.getElementById('courseWrap');
+    courseWrap.addEventListener('dropdown-change', function (e) {
+      const s = courseWrap.querySelector('.dropdown-item.selected');
+      if (s) location.href = '/questions/recycle?course_id=' + s.getAttribute('data-value');
+    });
+
+    window.__restoreQ = async function (id) {
+      const r = await fetch('/api/question/' + id + '/restore', { method: 'POST' });
+      const d = await r.json();
+      toast('已恢复');
+      document.querySelector('.rb-item[data-id="' + id + '"]').remove();
+      if (!document.querySelectorAll('.rb-item').length) {
+        document.querySelector('#rbEmpty').hidden = false;
+      }
+    };
+    window.__purgeQ = async function (id) {
+      if (!confirm('彻底删除后无法恢复，确定继续？')) return;
+      const r = await fetch('/api/question/' + id + '?permanent=1', { method: 'DELETE' });
+      const d = await r.json();
+      toast('已彻底删除');
+      document.querySelector('.rb-item[data-id="' + id + '"]').remove();
+    };
+  })();
+</script>
+{% endblock %}

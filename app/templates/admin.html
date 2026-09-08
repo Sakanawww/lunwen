@@ -1,0 +1,498 @@
+{% extends "base.html" %}
+{% block title %}管理员控制台{% endblock %}
+{% block nav_dashboard %}class="active"{% endblock %}
+
+{% block head %}
+<style>
+  /* ===== Agent 配置表顶部的概览标签导航（浅色） ===== */
+  .tabs { display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap; }
+  .tab {
+    display:inline-flex; align-items:center; gap:8px;
+    padding:9px 16px; border-radius:10px; cursor:pointer;
+    background:transparent; border:1px solid var(--border); color:var(--text-secondary);
+    font-size:13.5px; transition:var(--t-fast); font-family:inherit; min-height:40px;
+  }
+  .tab:hover:not(.active) { border-color:var(--accent); color:#fff; background:var(--bg-hover); }
+  .tab.active { background:var(--accent); border-color:var(--accent); color:#fff; box-shadow:var(--shadow-glow); }
+  .tab .count { background:rgba(59,130,246,.12); padding:0 8px; border-radius:999px; font-size:12px; color: #1D5FD0; }
+  .tab.active .count { background:rgba(255,255,255,.22); color: #fff; }
+
+  /* ===== 章节标题行（含操作按钮） ===== */
+  .section-head { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:14px; }
+
+  /* ===== 日志搜索 + 表格 ===== */
+  .log-tools { display:flex; gap:10px; margin-bottom:14px; flex-wrap:wrap; align-items:center; }
+  .search-box { position:relative; flex:0 1 300px; }
+  .search-box i.ri { position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--text-muted); font-size:15px; }
+  .search-box input { padding-left:36px; min-height:40px; }
+  .page-size { margin-left:auto; display:flex; align-items:center; gap:8px; color:var(--text-secondary); font-size:13px; }
+  .page-size select { 
+    width:auto; min-height:38px; padding: 10px 28px 10px 12px; 
+    background: #FFFFFF; border: 1px solid var(--border-strong); border-radius: var(--radius-md);
+    appearance: none; -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 10px center; background-size: 18px;
+  }
+  .page-size select:focus { outline: none; border-color: var(--accent); box-shadow: var(--shadow-glow); }
+
+  .badge-pill { white-space:nowrap; }
+  /* 分页条（浅色） */
+  .pager { display:flex; align-items:center; gap:12px; justify-content:flex-end; margin-top:12px; font-size:13px; color:var(--text-secondary); }
+  .pager button {
+    min-height:44px; min-width:44px; padding:0 14px; border-radius:10px;
+    border:1px solid var(--border-strong); background:#FFFFFF; color:var(--text-primary); cursor:pointer; transition:var(--t-fast); font-family:inherit;
+  }
+  .pager button:hover:not(:disabled){ background:var(--accent); border-color:var(--accent); color:#fff; }
+  .pager button:disabled{ opacity:.4; cursor:not-allowed; }
+  .pager .info { font-variant-numeric: tabular-nums; }
+
+  /* ===== 空状态（深色） ===== */
+  .empty-state i.ri { color:#CBD5E1; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>管理员控制台</h1>
+    <div class="sub">Agent 编排配置与系统审计日志</div>
+  </div>
+</div>
+
+{# ========== 顶部概览 Tab（跳转锚点）========== #}
+<div class="tabs" role="tablist" aria-label="控制台分区">
+  <a class="tab active" href="#accounts"><i class="ri-user-settings-line"></i>账号管理 <span class="count" id="accountCount">{{ account_count or 0 }}</span></a>
+  <a class="tab" href="#agents"><i class="ri-robot-2-line"></i>Agent 配置 <span class="count">{{ agents|length }}</span></a>
+  <a class="tab" href="#logs"><i class="ri-file-list-3-line"></i>系统日志 <span class="count" id="logCount">{{ logs|length }}</span></a>
+</div>
+
+{# ========== 一、账号管理 ========== #}
+<section class="card" id="accounts">
+  <div class="section-head">
+    <h2><i class="ri-user-settings-line"></i>账号管理</h2>
+    <button class="btn btn-grad" id="openAddAccount" style="min-height:38px;padding:8px 16px;font-size:13px;"><i class="ri-user-add-line"></i> 新增账号</button>
+  </div>
+
+  <div class="log-tools">
+    <div class="search-box">
+      <i class="ri-search-line" aria-hidden="true"></i>
+      <input type="text" id="acctSearch" placeholder="搜索用户名 / 姓名…" aria-label="搜索账号">
+    </div>
+    <div class="page-size">
+      <label for="acctRole" style="margin:0;">角色</label>
+      <select id="acctRole" aria-label="按角色筛选" style="width:auto;min-height:38px;padding:8px 30px 8px 12px;background:#fff;border:1px solid var(--border-strong);border-radius:8px;">
+        <option value="">全部</option>
+        <option value="admin">管理员</option>
+        <option value="teacher">教师</option>
+        <option value="student">学生</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table id="acctTable" aria-label="账号列表">
+      <thead>
+        <tr><th>ID</th><th>用户名</th><th>姓名</th><th>角色</th><th class="num">注册时间</th><th class="num">操作</th></tr>
+      </thead>
+      <tbody>
+        <tr class="empty-row"><td colspan="6"><div class="empty-state"><i class="ri-user-settings-line"></i>加载中…</div></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+{# ========== 二、Agent 配置 ========== #}
+<section class="card" id="agents">
+  <div class="section-head">
+    <h2><i class="ri-robot-2-line" aria-hidden="true"></i>Agent 配置</h2>
+  </div>
+
+  <div class="table-wrap">
+    <table id="agentTable" aria-label="Agent 配置列表">
+      <thead>
+        <tr>
+          <th class="sortable-th" data-key="name">Agent <span class="sortable">↕</span></th>
+          <th>角色职责</th>
+          <th>模型</th>
+          <th class="sortable-th" data-key="enabled">状态 <span class="sortable">↕</span></th>
+          <th>路由关键词</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for a in agents %}
+        <tr>
+          <td><strong>{{ a.name }}</strong></td>
+          <td style="color:var(--text-secondary);">{{ a.role_desc or '—' }}</td>
+          <td class="td-mono">{{ a.model or '默认' }}</td>
+          <td>
+            {% if a.enabled %}
+              <span class="badge b-on"><span class="dot"></span>启用</span>
+            {% else %}
+              <span class="badge b-off"><span class="dot"></span>禁用</span>
+            {% endif %}
+          </td>
+          <td>
+            <div class="tags" data-kw="{{ a.route_keywords or '' }}">
+              {# 默认只显示前 3 个关键词，其余折叠在"+N"里 #}
+              {% set kw = (a.route_keywords or '').split(',') if a.route_keywords else [] %}
+              {% for k in kw[:3] %}<span class="tag">{{ k }}</span>{% endfor %}
+              {% if kw|length > 3 %}
+                <span class="more" onclick="toggleTags(this)" role="button" tabindex="0" aria-expanded="false"
+                      onkeydown="if(event.key==='Enter')toggleTags(this)">+{{ kw|length - 3 }} 展开</span>
+                <span class="hidden-tags">
+                  {% for k in kw[3:] %}<span class="tag">{{ k }}</span>{% endfor %}
+                </span>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr class="empty-row"><td colspan="5"><div class="empty-state"><i class="ri-robot-2-line"></i>暂无 Agent 配置</div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+{# ========== 三、系统日志 ========== #}
+<section class="card" id="logs">
+  <div class="section-head">
+    <h2><i class="ri-file-list-3-line"></i>系统日志</h2>
+  </div>
+
+  <div class="log-tools">
+    <div class="search-box">
+      <i class="ri-search-line" aria-hidden="true"></i>
+      <input type="text" id="logSearch" placeholder="搜索用户 / 动作 / 详情…" aria-label="搜索日志">
+    </div>
+    <div class="page-size">
+      <label for="pageSize" style="margin:0;">每页</label>
+      <select id="pageSize" aria-label="每页条数">
+        <option value="5">5</option>
+        <option value="10" selected>10</option>
+        <option value="20">20</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table id="logTable" aria-label="系统日志列表">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>用户</th>
+          <th>操作</th>
+          <th>详情</th>
+          <th class="num">时间</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for l in logs %}
+        <tr data-action="{{ l.action }}" data-user="{{ l.user_id or '' }}">
+          <td class="td-mono">{{ l.id }}</td>
+          <td>{{ l.user_id or '—' }}</td>
+          <td><span class="badge badge-pill {{ 'b-info' if l.action.find('login')>=0 else ('b-warn' if 'config' in l.action or 'SET' in l.action else ('b-err' if 'fail' in l.action or '错误' in l.action else 'b-off')) }}">{{ l.action }}</span></td>
+          <td style="color:var(--text-secondary);">{{ l.detail or '—' }}</td>
+          <td class="num td-mono">{{ l.created_at }}</td>
+        </tr>
+        {% else %}
+        <tr class="empty-row"><td colspan="5"><div class="empty-state"><i class="ri-file-list-3-line"></i>暂无日志</div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="pager">
+    <button id="prevBtn" onclick="page(-1)" aria-label="上一页"><i class="ri-arrow-left-s-line"></i></button>
+    <span class="info" id="pageInfo"></span>
+    <button id="nextBtn" onclick="page(1)" aria-label="下一页"><i class="ri-arrow-right-s-line"></i></button>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+{# ===== 账号管理：新增/编辑对话框 ===== #}
+<div class="modal-mask" id="acctModal">
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="acctModalTitle">
+    <div class="modal-head">
+      <h3 id="acctModalTitle">新增账号</h3>
+      <button type="button" class="modal-x" id="acctCancel" aria-label="关闭"><i class="ri-close-line"></i></button>
+    </div>
+    <form id="acctForm" novalidate>
+      <input type="hidden" id="acctId">
+      <div class="form-row">
+        <label for="acctUsername">用户名</label>
+        <input type="text" id="acctUsername" autocomplete="off" placeholder="登录用户名" required>
+      </div>
+      <div class="form-row">
+        <label for="acctRealName">姓名</label>
+        <input type="text" id="acctRealName" autocomplete="off" placeholder="真实姓名" required>
+      </div>
+      <div class="form-row">
+        <label for="acctRoleSel">角色</label>
+        <select id="acctRoleSel">
+          <option value="student" selected>学生</option>
+          <option value="teacher">教师</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label for="acctPassword">密码</label>
+        <input type="password" id="acctPassword" autocomplete="new-password" placeholder="至少 6 位">
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" id="acctCancel2"><i class="ri-close-line"></i> 取消</button>
+        <button type="submit" class="btn btn-grad"><i class="ri-check-line"></i> 保存</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<style>
+  /* 账号管理：操作小按钮 */
+  .doc-actions { display: flex; gap: 8px; }
+  .action-btn {
+    min-height: 36px; min-width: 36px; padding: 0 10px; border-radius: 9px;
+    border: 1px solid var(--border-strong); background: var(--bg-input);
+    color: var(--text-secondary); cursor: pointer; transition: var(--t-fast);
+    display: inline-flex; align-items: center; justify-content: center; font-size: 15px;
+  }
+  .action-btn:hover { background: var(--bg-hover); color: var(--text-primary); border-color: var(--accent); }
+  .action-btn.danger:hover { background: rgba(239,68,68,.10); color: var(--danger); border-color: rgba(239,68,68,.35); }
+
+  /* 账号管理：对话框 */
+  .modal-mask {
+    position: fixed; inset: 0; background: rgba(15,23,42,.55); z-index: 200;
+    display: none; align-items: center; justify-content: center; padding: 20px;
+  }
+  .modal-mask.open { display: flex; }
+  .modal-box {
+    width: 100%; max-width: 420px; background: var(--bg-card);
+    border: 1px solid var(--border); border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg); padding: 20px;
+  }
+  .modal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .modal-head h3 { margin: 0; font-size: 16px; }
+  .modal-x { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-muted); }
+  .modal-x:hover { color: var(--text-primary); }
+  #acctForm .form-row { margin-bottom: 14px; }
+  #acctForm label { display: block; margin-bottom: 6px; font-size: 13px; font-weight: 500; }
+  #acctForm input, #acctForm select { width: 100%; min-height: 42px; }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+  #acctCancel2 { min-height: 40px; padding: 8px 16px; font-size: 13.5px; }
+</style>
+<script>
+  /* 关键词 Tag 展开/收起 */
+  function toggleTags(trigger) {
+    const tags = trigger.parentElement;
+    tags.classList.toggle('expanded');
+    const expanded = tags.classList.contains('expanded');
+    trigger.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    trigger.textContent = expanded ? '收起' : trigger.textContent.replace(/^收起$/, '+'+ (tags.querySelectorAll('.hidden-tags .tag').length) +' 展开');
+  }
+
+  /* ---------- 日志表格：搜索 + 分页 + 空状态 ---------- */
+  const tbody = document.querySelector('#logTable tbody');
+  let rows = Array.from(tbody.querySelectorAll('tr[data-action]'));
+  let pageSize = 10, pageNum = 0;
+
+  // Badge 判定（CSS 选择器在服务端已做初态，这里用于刷新统计无需重复）
+  document.getElementById('pageSize').addEventListener('change', function(e){
+    pageSize = +e.target.value; pageNum = 0; render(); });
+
+  document.getElementById('logSearch').addEventListener('input', function(e){
+    const q = e.target.value.trim().toLowerCase(); pageNum = 0;
+    rows.forEach(r => {
+      const text = (r.getAttribute('data-action') + ' ' + r.getAttribute('data-user') + ' ' + r.textContent).toLowerCase();
+      r.hidden = q && !text.includes(q);
+    });
+    document.getElementById('logCount').textContent = rows.filter(r=>!r.hidden).length;
+    render();
+  });
+
+  function sliceVisible(){ return rows.filter(r => !r.hidden); }
+  function render(){
+    const vis = sliceVisible();
+    const total = Math.max(1, Math.ceil(vis.length / pageSize));
+    if (pageNum >= total) pageNum = total - 1;
+    const start = pageNum * pageSize;
+    vis.forEach((r, i) => r.style.display = (i >= start && i < start + pageSize) ? '' : 'none');
+    document.getElementById('pageInfo').textContent = pageNum + 1 + ' / ' + total;
+    document.getElementById('prevBtn').disabled = pageNum === 0;
+    document.getElementById('nextBtn').disabled = pageNum >= total - 1;
+  }
+  function page(d){ pageNum += d; render(); }
+
+  /* =====================================================================
+     账号管理：加载 / 新增 / 编辑 / 删除
+     ===================================================================== */
+  var ROLE_LABEL = { admin: '管理员', teacher: '教师', student: '学生' };
+  var acctRows = [];
+  var acctTbody = document.querySelector('#acctTable tbody');
+
+  function escHtml(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  function renderAccounts() {
+    var q = (document.getElementById('acctSearch').value || '').trim().toLowerCase();
+    var roleF = document.getElementById('acctRole').value;
+    var vis = acctRows.filter(function (r) {
+      var okRole = !roleF || r.role === roleF;
+      var okQ = !q || (r.username + ' ' + (r.real_name || '')).toLowerCase().includes(q);
+      return okRole && okQ;
+    });
+    if (!acctRows.length) {
+      acctTbody.innerHTML = '<tr class="empty-row"><td colspan="6"><div class="empty-state"><i class="ri-user-settings-line"></i>暂无账号</div></td></tr>';
+      return;
+    }
+    if (!vis.length) {
+      acctTbody.innerHTML = '<tr class="empty-row"><td colspan="6"><div class="empty-state"><i class="ri-inbox-line"></i>没有匹配的账号</div></td></tr>';
+      return;
+    }
+    acctTbody.innerHTML = vis.map(function (r) {
+      var badge = r.role === 'admin' ? 'b-err' : (r.role === 'teacher' ? 'b-warn' : 'b-info');
+      // 档案信息：学生显示学号、教师显示工号
+      var extra = r.role === 'student' ? (r.student_no || '') : (r.role === 'teacher' ? (r.teacher_no || '') : '');
+      var nameCell = escHtml(r.real_name) + (extra ? ' <span class="badge">' + escHtml(extra) + '</span>' : '');
+      return '<tr>' +
+        '<td class="td-mono">' + r.id + '</td>' +
+        '<td><strong>' + escHtml(r.username) + '</strong></td>' +
+        '<td>' + nameCell + '</td>' +
+        '<td><span class="badge badge-pill ' + badge + '">' + (ROLE_LABEL[r.role] || r.role) + '</span></td>' +
+        '<td class="num td-mono">' + escHtml(r.created_at) + '</td>' +
+        '<td class="num"><div class="doc-actions" style="justify-content:flex-end;">' +
+          '<button class="action-btn" title="编辑" aria-label="编辑 ' + escHtml(r.username) + '" onclick="window.__editAccount(' + r.id + ')"><i class="ri-edit-2-line"></i></button>' +
+          '<button class="action-btn danger" title="删除" aria-label="删除 ' + escHtml(r.username) + '" onclick="window.__delAccount(' + r.id + ')"><i class="ri-delete-bin-6-line"></i></button>' +
+        '</div></td>' +
+      '</tr>';
+    }).join('');
+  }
+
+  function loadAccounts() {
+    fetch('/api/accounts')
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        acctRows = d.accounts || [];
+        document.getElementById('accountCount').textContent = acctRows.length;
+        renderAccounts();
+      })
+      .catch(function () { acctTbody.innerHTML = '<tr class="empty-row"><td colspan="6"><div class="empty-state"><i class="ri-error-warning-line"></i>账号加载失败</div></td></tr>'; });
+  }
+  loadAccounts();
+  document.getElementById('acctSearch').addEventListener('input', renderAccounts);
+  document.getElementById('acctRole').addEventListener('change', renderAccounts);
+
+  // ---- 新增账号 —— 对话框 ----
+  var acctModal = function () { return document.getElementById('acctModal'); };
+  function openAcctModal(empty) {
+    acctModal().classList.add('open');
+    if (empty) {
+      document.getElementById('acctModalTitle').textContent = '新增账号';
+      document.getElementById('acctForm').reset();
+      document.getElementById('acctId').value = '';
+      document.getElementById('acctUsername').disabled = false;
+      document.getElementById('acctRoleSel').value = 'student';
+    }
+  }
+  function closeAcctModal() { acctModal().classList.remove('open'); }
+  document.getElementById('openAddAccount').addEventListener('click', function () { openAcctModal(true); });
+  document.getElementById('acctModal').addEventListener('click', function (e) { if (e.target === acctModal()) closeAcctModal(); });
+  document.getElementById('acctCancel').addEventListener('click', closeAcctModal);
+  document.getElementById('acctCancel2').addEventListener('click', closeAcctModal);
+
+  function postJSON(url, method, body) {
+    return fetch(url, {
+      method: method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    }).then(function (r) {
+      return r.json().then(function (d) {
+        if (!r.ok) throw new Error(d.detail || 'HTTP ' + r.status);
+        return d;
+      });
+    });
+  }
+
+  function collectAcctForm() {
+    var id = document.getElementById('acctId').value;
+    var payload = {
+      username: document.getElementById('acctUsername').value.trim(),
+      password: document.getElementById('acctPassword').value,
+      real_name: document.getElementById('acctRealName').value.trim(),
+      role: document.getElementById('acctRoleSel').value
+    };
+    return { id: id, payload: payload };
+  }
+
+  document.getElementById('acctForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var data = collectAcctForm();
+    if (!data.payload.real_name) { toast('请填写姓名', 'error'); return; }
+    if (data.payload.role === 'admin') { toast('系统不支持创建管理员，请联系开发者', 'error'); return; }
+    if (!data.id && !data.payload.username) { toast('请填写用户名', 'error'); return; }
+    if (!data.id && data.payload.password.length < 6) { toast('密码至少 6 位', 'error'); return; }
+
+    var p = data.id
+      ? postJSON('/api/accounts/' + data.id, 'PUT', {
+          real_name: data.payload.real_name,
+          role: data.payload.role,
+          password: data.payload.password || undefined
+        })
+      : postJSON('/api/accounts', 'POST', data.payload);
+
+    p.then(function (d) {
+      toast(d.msg || '操作成功');
+      closeAcctModal();
+      loadAccounts();
+    }).catch(function (err) { toast(err.message, 'error'); });
+  });
+
+  // ---- 编辑 / 删除 ----
+  window.__editAccount = function (id) {
+    var r = acctRows.filter(function (x) { return x.id === id; })[0];
+    if (!r) return;
+    document.getElementById('acctModalTitle').textContent = '编辑账号';
+    document.getElementById('acctForm').reset();
+    document.getElementById('acctId').value = r.id;
+    document.getElementById('acctUsername').value = r.username;
+    document.getElementById('acctUsername').disabled = true;
+    document.getElementById('acctRealName').value = r.real_name || '';
+    document.getElementById('acctRoleSel').value = r.role;
+    openAcctModal(false);
+  };
+
+  window.__delAccount = function (id) {
+    var r = acctRows.filter(function (x) { return x.id === id; })[0];
+    if (!r) return;
+    if (!confirm('确定删除账号「' + r.username + '」？该操作不可恢复，其关联的课程成员、会话记录等将一并删除。')) return;
+    postJSON('/api/accounts/' + id, 'DELETE', {})
+      .then(function (d) { toast(d.msg || '删除成功'); loadAccounts(); })
+      .catch(function (err) { toast(err.message, 'error'); });
+  };
+
+  render();  // 初始化分页
+  const sortState = {};
+  document.querySelectorAll('#agentTable th.sortable-th').forEach(th => {
+    th.addEventListener('click', () => {
+      const key = th.getAttribute('data-key');
+      const dir = sortState[key] === 'asc' ? 'desc' : 'asc';
+      sortState[key] = dir;
+      const tbodyA = document.querySelector('#agentTable tbody');
+      const arows = Array.from(tbodyA.querySelectorAll('tr[data-action], tr:not(.empty-row)'));
+      const real = Array.from(tbodyA.rows).filter(r => r.className !== 'empty-row');
+      real.sort((x, y) => {
+        const xv = x.cells[0].textContent.trim(), yv = y.cells[0].textContent.trim();
+        const cmp = xv < yv ? -1 : xv > yv ? 1 : 0;
+        return dir === 'asc' ? cmp : -cmp;
+      });
+      real.forEach(r => tbodyA.appendChild(r));
+      document.querySelectorAll('#agentTable th.sortable-th .sortable').forEach(s => s.textContent = '↕');
+      th.querySelector('.sortable').textContent = dir === 'asc' ? '▲' : '▼';
+    });
+  });
+
+  render();  // 初始化分页
+</script>
+{% endblock %}
