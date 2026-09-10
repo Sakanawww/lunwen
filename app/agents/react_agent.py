@@ -1,10 +1,15 @@
-"""ReAct 模式 Agent 编排：基于 ReAct（Reasoning + Acting）范式的智能Agent。
+"""ReAct 模式 Agent 编排：基于 ReAct（Reasoning + Acting）范式的智能 Agent。
 
 ReAct 模式核心：
 1. Thought（思考）：分析当前状态，决定下一步行动
-2. Action（行动）：调用工具执行具体任务
-3. Observation（观察）：获取工具执行结果
+2. Action（行动）：调用工具执行具体任务，包括 ask 工具向用户提问
+3. Observation（观察）：获取工具执行结果或用户回答
 4. 循环直到问题解决或达到最大迭代次数
+
+可用工具：
+- ask: 向用户提问以获取更多信息（优先使用）
+- todo_list: 管理待办事项
+- web_search: 执行网络搜索
 """
 from typing import Any, Callable, Optional
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage, ToolMessage
@@ -13,13 +18,16 @@ from langchain_openai import ChatOpenAI
 from app.services import llm
 
 
-# ReAct 系统提示模板
+# ReAct 系统提示模板（明确集成 ask 工具）
 REACT_SYSTEM_PROMPT = """你是一个智能助教，使用 ReAct（Reasoning + Acting）模式来解决问题。
 
 工作流程：
 1. 思考（Thought）：分析用户问题，思考需要什么信息
 2. 行动（Action）：选择合适的工具来获取信息
-3. 观察（Observation）：查看工具返回的结果
+   - 如果信息不足，优先使用 ask 工具向用户提问
+   - 如果需要待办管理，使用 todo_list 工具
+   - 如果需要网络搜索，使用 web_search 工具
+3. 观察（Observation）：查看工具返回的结果或用户的回答
 4. 重复以上步骤，直到能够完整回答问题
 
 可用工具：
@@ -28,13 +36,15 @@ REACT_SYSTEM_PROMPT = """你是一个智能助教，使用 ReAct（Reasoning + A
 回答格式：
 Thought: [你的思考过程]
 Action: [工具名称]
-Action Input: {{工具参数}}
-Observation: [工具返回结果]
+Action Input: {{"参数": "值"}}
+Observation: [工具返回结果或用户回答]
 ...（重复直到得出结论）
 Thought: 我现在有了足够的信息
 Final Answer: [最终回答]
 
-如果不需要使用工具，直接给出 Final Answer。"""
+如果不需要使用工具，直接给出 Final Answer。
+
+注意：当信息不足时，优先使用 ask 工具向用户提问，而不是猜测。"""
 
 
 class ReActAgent:
@@ -197,3 +207,36 @@ class WebSearchReActAgent:
             return self.search_tool.get_search_history()
         else:
             return f"请明确搜索内容。示例：'搜索 Python 教程'"
+
+
+class AskReActAgent:
+    """提问 ReAct Agent：使用 ask 工具向用户提问以获取更多信息。"""
+    
+    def __init__(self):
+        from app.agents.tools.ask import get_ask_tool
+        self.ask_tool = get_ask_tool()
+    
+    def run(self, query: str, user_answer: Optional[str] = None) -> str:
+        """处理需要向用户提问的场景。
+        
+        Args:
+            query: 用户查询或问题
+            user_answer: 用户对之前问题的回答（可选）
+            
+        Returns:
+            处理结果
+        """
+        if user_answer:
+            # 用户提供了回答，记录并继续
+            # 假设用户回答的是最近一个问题
+            pending = [q for q in self.ask_tool._pending_questions if not q["answered"]]
+            if pending:
+                question_id = pending[0]["id"]
+                self.ask_tool.submit_answer(question_id, user_answer)
+                return f"已记录您的回答：{user_answer}"
+            return f"已记录：{user_answer}"
+        
+        # 需要向用户提问
+        # 从查询中提取需要问的问题
+        question = f"关于\"{query}\"，您能提供更多细节吗？"
+        return self.ask_tool.ask(question)
