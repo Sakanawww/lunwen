@@ -9,7 +9,7 @@
 - 后端：Python 3.11 · FastAPI · SQLAlchemy · MySQL
 - 智能体：LangChain + **LangGraph**（多 Agent 有状态编排）+ Function Calling
 - 检索：FAISS 向量库 + Qwen Embedding（RAG 溯源）
-- 前端：**Jinja2 模板 + 原生 JS**（按要求不使用 Vue）
+- 前端：**Vue 3 + Vite + TypeScript + Pinia + Vue Router**（shadcn/ui 风格设计）
 - 会话：内存态（Redis 可选降级）
 
 ## 运行前准备
@@ -20,6 +20,7 @@
    ```bash
    python -m venv .venv
    .venv\Scripts\pip install -r requirements.txt
+   cd frontend && npm install && cd ..
    ```
 
 3. **配置 `.env`（需自行填写，勿提交仓库）**，参考 `.env.example`：
@@ -50,13 +51,23 @@
 
    > 种子账号：`admin` / `teacher` / `student`，密码均为 `123456`。
 
-5. **启动服务**：
+> 种子账号：`admin` / `teacher` / `student`，密码均为 `123456`。
+
+5. **启动服务（推荐使用统一启动脚本）**：
 
    ```bash
-   .venv\Scripts\python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+   # 一键启动前后端（后端 :8000 · 前端 :5173 · Swagger 文档 :8000/docs）
+   python scripts/start.py start
+
+   # 其他常用命令
+   python scripts/start.py status    # 查看服务状态
+   python scripts/start.py stop      # 停止服务
+   python scripts/start.py restart   # 重启服务
+   python scripts/start.py logs      # 查看日志（-f 跟踪）
+   python scripts/start.py daemon    # 守护进程模式（Linux/Mac）
    ```
 
-   浏览器访问 http://127.0.0.1:8000 即可。
+   启动后浏览器访问 http://localhost:5173 进入系统（登录页 http://localhost:5173/login）。
 
 ## 功能入口
 
@@ -73,14 +84,17 @@ app/
   agents/        # 答疑/批改/出题三个 Agent + LangGraph 编排图 graph.py
   kb/            # 知识库切分、向量化、FAISS 检索、溯源
   api/           # FastAPI 接口（认证/答疑/知识库/批改/出题/看板）
-  models/        # SQLAlchemy ORM（16 张表）
+  models/        # SQLAlchemy ORM
   schemas/       # Pydantic 请求/响应模型
   core/          # 配置、数据库、会话、依赖
   services/      # 大模型封装
-  templates/     # Jinja2 页面
+frontend/        # Vue3 前端（src/views、src/stores、src/router 等）
 database/        # schema.sql / seed.sql
+scripts/         # 统一启动脚本 start.py、zh_tw/zh_cn 等
 data/seed_kb/    # 演示用《数据结构》讲义
 tests/           # 单元测试（pytest）
+data/uploads/    # 运行时知识库上传文件（勿提交）
+data/faiss_index/# 运行时向量索引（勿提交）
 ```
 
 ## 测试
