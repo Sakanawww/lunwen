@@ -1,4 +1,8 @@
-"""FastAPI 应用入口：注册路由与 API 接口。"""
+"""FastAPI 应用入口：注册路由与 API 接口。
+
+注意：前端已完全迁移到 Vue 3 SPA，后端仅提供 REST API，
+不再渲染 HTML 模板。所有页面路由由 Vue Router 处理。
+"""
 import json
 import logging
 from pathlib import Path
@@ -6,7 +10,7 @@ from pathlib import Path
 from fastapi import Depends, FastAPI, File, Form, Request, UploadFile
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session as OrmSession
 
@@ -61,7 +65,7 @@ _STATIC_DIR = Path(__file__).parent / "static"
 _STATIC_DIR.mkdir(exist_ok=True)
 app.mount("/static", StaticFiles(directory=str(_STATIC_DIR), html=True), name="static")
 
-# 注册接口路由
+# 注册接口路由（全部为 REST API）
 app.include_router(auth.router)
 app.include_router(chat.router)
 app.include_router(knowledge.router)
@@ -75,8 +79,9 @@ app.include_router(courses.router)
 app.include_router(accounts.router)
 
 
-# ---- 用户注入模板上下文 ----
+# ---- 用户注入模板上下文（已废弃，仅保留向后兼容）----
 def _ctx(request: Request):
+    """已废弃：前端已迁移到 Vue，不再使用模板上下文。"""
     user = None
     token = request.cookies.get("token") or ""
     sess = sstore.get_session(token)
@@ -86,176 +91,66 @@ def _ctx(request: Request):
 
 
 def _require(db: OrmSession, user: dict, *roles: str):
+    """已废弃：前端已迁移到 Vue，不再使用模板权限检查。"""
     if not user or user["role"] not in roles:
         return None
     return True
 
 
-@app.get("/", response_class=HTMLResponse)
-def index(request: Request):
-    if _ctx(request)["user"]:
-        return RedirectResponse("/dashboard")
-    # 直接跳转到 Vue 前端登录页
-    return RedirectResponse("/login", status_code=303)
+# ============================================================================
+# 以下路由已废弃，前端已完全迁移到 Vue 3 SPA
+# 所有页面路由由 Vue Router 处理，后端仅提供 REST API
+# ============================================================================
 
-
-@app.get("/login", response_class=HTMLResponse)
-def login_page_redirect(request: Request):
-    """登录页重定向到 Vue 前端"""
-    return RedirectResponse("/", status_code=303)
-
-
-@app.get("/register", response_class=HTMLResponse)
-def register_page_redirect(request: Request):
-    """注册页重定向到 Vue 前端"""
-    return RedirectResponse("/register", status_code=303)
-
-
-@app.post("/register", response_class=HTMLResponse)
-def register_page_post_redirect(request: Request):
-    """注册 POST 重定向到 Vue 前端"""
-    return RedirectResponse("/register", status_code=303)
+@app.get("/")
+def index():
+    """根路径：返回 API 信息。
+    
+    前端已迁移到 Vue 3 SPA，请访问 /api/docs 查看 API 文档。
+    """
+    return {
+        "name": "课程助教系统 API",
+        "version": "0.1.0",
+        "docs": "/docs",
+        "redoc": "/redoc",
+        "note": "前端已迁移到 Vue 3 SPA，所有页面由前端路由处理"
+    }
 
 
 @app.get("/auth/logout")
-def logout_page(request: Request):
+def logout(request: Request):
+    """登出：清除会话并删除 Cookie。"""
     token = request.cookies.get("token") or ""
     sstore.destroy_session(token)
-    resp = RedirectResponse("/", status_code=303)
+    resp = RedirectResponse(url="/", status_code=303)
     resp.delete_cookie("token")
     return resp
 
 
-@app.get("/dashboard", response_class=HTMLResponse)
-def dashboard_page(request: Request, course_id: int | None = None,
-                   db: OrmSession = Depends(get_db)):
-    """Dashboard 页面已迁移到 Vue 前端，直接重定向"""
-    return RedirectResponse("/dashboard", status_code=303)
+# ============================================================================
+# 已废弃的路由（保留用于向后兼容，返回 410 Gone 或重定向到前端）
+# ============================================================================
 
-
-def _visible_courses(db: OrmSession, user_id: int):
-    """教师/助教可见的课程：course_users 中的 owner/teacher/assistant，
-    以及 courses.teacher_id 指向该用户的课程（旧数据兼容）。"""
-    ids = {c.course_id for c in db.query(m.CourseUser).filter(m.CourseUser.user_id == user_id).all()}
-    ids |= {c.id for c in db.query(m.Course).filter(m.Course.teacher_id == user_id).all()}
-    rows = []
-    for cid in sorted(ids):
-        row = db.get(m.Course, cid)
-        if row:
-            rows.append(row)
-    return rows
-
-
-# 以下页面已迁移到 Vue 前端，保留路由用于向后兼容，重定向到 Vue 前端
-@app.get("/chat", response_class=HTMLResponse)
-def chat_page(request: Request, db: OrmSession = Depends(get_db)):
-    """Chat 页面已迁移到 Vue 前端"""
-    return RedirectResponse("/chat", status_code=303)
-
-
-@app.get("/courses", response_class=HTMLResponse)
-def courses_page(request: Request, db: OrmSession = Depends(get_db)):
-    """Courses 页面已迁移到 Vue 前端"""
-    return RedirectResponse("/courses", status_code=303)
-
-
-@app.get("/chat/deleted", response_class=HTMLResponse)
-def chat_deleted_page(request: Request, db: OrmSession = Depends(get_db)):
-    """Chat Deleted 页面已迁移到 Vue 前端"""
-    return RedirectResponse("/chat/deleted", status_code=303)
-
-
-@app.get("/kb", response_class=HTMLResponse)
-def kb_page(request: Request, course_id: int | None = None, db: OrmSession = Depends(get_db)):
-    """Knowledge Base 页面已迁移到 Vue 前端"""
-    return RedirectResponse("/knowledge", status_code=303)
-
-
-@app.post("/kb/upload")
-async def kb_upload(request: Request, course_id: int = Form(...),
-                    file: UploadFile = File(...), db: OrmSession = Depends(get_db)):
-    """知识库上传已迁移到 Vue 前端"""
-    return RedirectResponse("/knowledge", status_code=303)
-
-
-@app.get("/grading", response_class=HTMLResponse)
-def grading_page(request: Request, course_id: int | None = None,
-                 db: OrmSession = Depends(get_db)):
-    """Grading 页面已迁移到 Vue 前端"""
-    return RedirectResponse("/grading", status_code=303)
-
-
-@app.get("/questions", response_class=HTMLResponse)
-def questions_page(request: Request, course_id: int | None = None,
-                   db: OrmSession = Depends(get_db)):
-    """Questions 页面已迁移到 Vue 前端"""
-    return RedirectResponse("/questions", status_code=303)
-
-
-@app.get("/dashboard/hot-questions", response_class=HTMLResponse)
-def dashboard_hot_questions_page(request: Request, course_id: int | None = None,
-                                 db: OrmSession = Depends(get_db)):
-    """热门问题页面已迁移到 Vue 前端"""
-    return RedirectResponse("/dashboard/hot-questions", status_code=303)
-
-
-@app.get("/dashboard/students", response_class=HTMLResponse)
-def dashboard_students_page(request: Request, course_id: int | None = None,
-                            db: OrmSession = Depends(get_db)):
-    """学生名单页面已迁移到 Vue 前端"""
-    return RedirectResponse("/dashboard/students", status_code=303)
-
-
-@app.get("/questions/recycle", response_class=HTMLResponse)
-def questions_recycle_page(request: Request, course_id: int | None = None,
-                           db: OrmSession = Depends(get_db)):
-    """试题回收站页面已迁移到 Vue 前端"""
-    return RedirectResponse("/questions/recycle", status_code=303)
-
-
-@app.get("/logs", response_class=HTMLResponse)
-def logs_page(request: Request, db: OrmSession = Depends(get_db)):
-    """Logs 页面已迁移到 Vue 前端"""
-    return RedirectResponse("/admin", status_code=303)
-
-
-@app.get("/agents", response_class=HTMLResponse)
-def agents_page(request: Request, db: OrmSession = Depends(get_db)):
-    """Agents 配置页面已迁移到 Vue 前端"""
-    return RedirectResponse("/admin", status_code=303)
-
-
-@app.post("/questions/generate")
-async def questions_gen(request: Request, course_id: int = Form(...),
-                        topic: str = Form(...), num: int = Form(3),
-                        difficulty: int = Form(3), db: OrmSession = Depends(get_db)):
-    """试题生成 API - 保留用于向后兼容"""
-    ctx = _ctx(request)
-    user = ctx["user"]
-    if not user or user["role"] not in ("teacher", "admin"):
-        return RedirectResponse("/dashboard", status_code=303)
-    # RBAC：仅课程 owner/teacher/assistant 可出题
-    role = course_role(user["id"], course_id, db)
-    if user["role"] == "admin":
-        role = "admin"
-    if role not in ("admin", "owner", "teacher", "assistant"):
-        return RedirectResponse("/dashboard", status_code=303)
-    course = db.get(m.Course, course_id)
-    from app.agents.question_agent import generate_questions
-    from app.utils.logging import write_log
-
-    qs = generate_questions(topic, num, difficulty, course_name=course.name if course else "")
-    for q in qs:
-        db.add(m.Question(course_id=course_id, type=q.get("type", "short"),
-                          stem=q.get("stem", ""), options=q.get("options", ""),
-                          answer=q.get("answer", ""),
-                          difficulty=q.get("difficulty", 3), source="ai"))
-    db.commit()
-    write_log(user["id"], "GEN_QUESTION", f"AI 生成 {len(qs)} 道试题：{topic}", request)
-    return RedirectResponse(f"/questions?course_id={course_id}", status_code=303)
-
-
-@app.get("/practice", response_class=HTMLResponse)
-def practice_page(request: Request, db: OrmSession = Depends(get_db)):
-    """Practice 页面已迁移到 Vue 前端"""
-    return RedirectResponse("/practice", status_code=303)
+@app.get("/login")
+@app.get("/register")
+@app.get("/dashboard")
+@app.get("/chat")
+@app.get("/courses")
+@app.get("/kb")
+@app.get("/grading")
+@app.get("/questions")
+@app.get("/practice")
+@app.get("/admin")
+@app.get("/logs")
+def deprecated_routes():
+    """这些路由已废弃，前端已迁移到 Vue 3 SPA。
+    
+    所有页面请求应由前端开发服务器（Vite）处理，
+    或通过 API 端点 (/api/*) 访问后端服务。
+    """
+    return {
+        "error": "Route deprecated",
+        "message": "前端已迁移到 Vue 3 SPA，请通过前端开发服务器访问",
+        "frontend": "http://localhost:5173",
+        "api_docs": "/docs"
+    }
