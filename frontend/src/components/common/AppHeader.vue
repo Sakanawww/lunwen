@@ -80,7 +80,7 @@ const courseStore = useCourseStore()
 const user = computed(() => authStore.user)
 const courses = computed(() => courseStore.courses)
 const currentCourse = computed({
-  get: () => courseStore.activeCourseId,
+  get: () => courseStore.currentCourseId,
   set: (value) => courseStore.setActiveCourse(value as number)
 })
 

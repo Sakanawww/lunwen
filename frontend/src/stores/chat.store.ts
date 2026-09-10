@@ -219,22 +219,70 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   /**
-   * 删除会话
+   * 删除会话（软删除进回收站；permanent=true 则彻底删除）
    */
-  async function deleteSession(sessionId: number) {
+  async function deleteSession(sessionId: number, permanent: boolean = false) {
     try {
-      // TODO: 调用 API
-      // await api.delete(`/api/chat/sessions/${sessionId}`)
-      
+      const res = await fetch(`/api/sessions/${sessionId}?permanent=${permanent ? 1 : 0}`, {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
+        },
+      })
+      if (!res.ok) throw new Error('删除会话失败')
+
       sessions.value = sessions.value.filter(s => s.id !== sessionId)
-      
+
       if (currentSessionId.value === sessionId) {
         currentSessionId.value = null
         messages.value = []
       }
+      await refreshDeletedSessions()
     } catch (err: any) {
       error.value = err.message || '删除会话失败'
       throw err
+    }
+  }
+
+  /**
+   * 从回收站恢复会话
+   */
+  async function restoreSession(sessionId: number) {
+    try {
+      const res = await fetch(`/api/sessions/${sessionId}/restore`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
+        },
+      })
+      if (!res.ok) throw new Error('恢复会话失败')
+      await refreshDeletedSessions()
+    } catch (err: any) {
+      error.value = err.message || '恢复会话失败'
+      throw err
+    }
+  }
+
+  /** 已删除会话列表（回收站） */
+  const deletedSessions = ref<any[]>([])
+
+  async function refreshDeletedSessions() {
+    try {
+      const res = await fetch('/api/sessions/deleted', {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
+        },
+      })
+      if (!res.ok) return
+      deletedSessions.value = await res.json()
+    } catch (e) {
+      console.error('加载回收站失败:', e)
     }
   }
 
@@ -297,6 +345,9 @@ export const useChatStore = defineStore('chat', () => {
     sendMessage,
     clearMessages,
     deleteSession,
+    restoreSession,
+    deletedSessions,
+    refreshDeletedSessions,
     exportChat,
   }
 })

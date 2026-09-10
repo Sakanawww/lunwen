@@ -174,11 +174,6 @@ import { useCourseStore } from '@/stores/course.store'
 import VChart from 'vue-echarts'
 import * as echarts from 'echarts'
 
-interface Course {
-  id: number
-  name: string
-}
-
 interface Metric {
   totalStudents: number
   submissionCount: number
@@ -193,6 +188,13 @@ interface HotQuestion {
   text: string
   studentCount: number
   trend: number
+}
+
+interface TrendDatum {
+  labels: string[]
+  submissions: number[]
+  questions: number[]
+  kb: number[]
 }
 
 const courseStore = useCourseStore()
@@ -239,69 +241,51 @@ const trendOption = ref()
 const completionOption = ref()
 const kbOption = ref()
 
-// 不同时间范围的数据
-const trendDataMap: Record<number, number[]> = {
-  7: [120, 132, 101, 134, 90, 230, 210],
-  30: [150, 180, 140, 160, 120, 200, 180, 160, 140, 170, 190, 210, 180, 160, 140, 170, 190, 210, 230, 200, 180, 160, 140, 170, 190, 210, 230, 250, 220, 200],
-  90: [150, 180, 140, 160, 120, 200, 180],
-  0: [100, 120, 150, 180, 200, 220, 250, 280, 300, 320, 350, 380]
+// 后端返回的最新数据（供图表按趋势粒度渲染）
+const trendData = ref<TrendDatum>({ labels: [], submissions: [], questions: [], kb: [] })
+const completionData = ref<{ done: number; pending: number; overdue: number }>({ done: 0, pending: 0, overdue: 0 })
+const kbUsageData = ref<{ docs: number; chunks: number; references: number; gradings: number }>({ docs: 0, chunks: 0, references: 0, gradings: 0 })
+
+// 认证请求头
+const authHeaders = () => ({
+  'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
+})
+
+/** 按趋势粒度切取子序列：把后端返回的趋势数据投影到「周/月/季/全部」标签体系 */
+const sliceTrend = (arr: number[], days: number): number[] => {
+  const src = trendData.value
+  if (!arr || arr.length === 0) return []
+  const n = src.labels.length
+  if (n === 0) return []
+  // days<=0 表示全部，整段使用
+  if (days <= 0) return [...arr]
+  // 目标点数：历史累计最多取 days 个点（若数据不足则全量）
+  const take = Math.min(days, n)
+  return arr.slice(n - take)
 }
 
-const trendDateLabels: Record<number, string[]> = {
-  7: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
-  30: Array.from({ length: 30 }, (_, i) => `${i + 1}日`),
-  90: ['第 1 周', '第 2 周', '第 3 周', '第 4 周', '第 5 周', '第 6 周', '第 7 周', '第 8 周', '第 9 周', '第 10 周', '第 11 周', '第 12 周'],
-  0: ['1 月', '2 月', '3 月', '4 月', '5 月', '6 月', '7 月', '8 月', '9 月', '10 月', '11 月', '12 月']
-}
-
-// 不同课程的数据
-const courseDataMap: Record<number, { metrics: Partial<Metric>, questions: HotQuestion[] }> = {
-  1: { // 计算机科学基础
-    metrics: { totalStudents: 42, submissionCount: 156, gradedCount: 148, avgScore: '85.6', chatCount: 328, activeStudents: 38 },
-    questions: [
-      { id: 1, text: '如何理解机器学习中的过拟合问题？', studentCount: 12, trend: 15 },
-      { id: 2, text: 'Python 装饰器的使用场景有哪些？', studentCount: 9, trend: 8 },
-    ]
-  },
-  2: { // 数据结构与算法
-    metrics: { totalStudents: 38, submissionCount: 142, gradedCount: 135, avgScore: '82.3', chatCount: 285, activeStudents: 32 },
-    questions: [
-      { id: 1, text: '快速排序的实现原理？', studentCount: 15, trend: 20 },
-      { id: 2, text: '二叉树遍历的递归与非递归实现？', studentCount: 11, trend: 12 },
-    ]
-  },
-  3: { // 数据库原理
-    metrics: { totalStudents: 35, submissionCount: 128, gradedCount: 120, avgScore: '78.9', chatCount: 256, activeStudents: 28 },
-    questions: [
-      { id: 1, text: '数据库索引的原理是什么？', studentCount: 14, trend: 18 },
-      { id: 2, text: '事务隔离级别有哪些？', studentCount: 10, trend: 5 },
-    ]
-  },
-  4: { // 机器学习基础
-    metrics: { totalStudents: 45, submissionCount: 168, gradedCount: 160, avgScore: '88.2', chatCount: 380, activeStudents: 42 },
-    questions: [
-      { id: 1, text: '梯度下降与反向传播的关系？', studentCount: 18, trend: 25 },
-      { id: 2, text: '过拟合与欠拟合的区别？', studentCount: 13, trend: 10 },
-    ]
-  }
-}
+const trendLabels = computed<string[]>(() => {
+  const src = trendData.value
+  const days = selectedTrendDays.value
+  const n = src.labels.length
+  if (n === 0) return []
+  if (days <= 0) return [...src.labels]
+  const take = Math.min(days, n)
+  return src.labels.slice(n - take)
+})
 
 // 初始化图表
 const initCharts = () => {
-  const data = trendDataMap[selectedTrendDays.value] || trendDataMap[7]
-  const labels = trendDateLabels[selectedTrendDays.value] || trendDateLabels[7]
-  const courseData = courseDataMap[selectedCourseId.value || 1]
-  
-  // 更新指标数据
-  if (courseData) {
-    Object.assign(metrics, courseData.metrics)
-    hotQuestions.value = courseData.questions
-  }
-  
-  // 学习趋势图
+  const labels = trendLabels.value
+  const submissions = sliceTrend(trendData.value.submissions, selectedTrendDays.value)
+  const questions = sliceTrend(trendData.value.questions, selectedTrendDays.value)
+  const kb = sliceTrend(trendData.value.kb, selectedTrendDays.value)
+
+  // 学习趋势图（作业提交 / 答疑提问 / 知识库引用 三线）
   trendOption.value = {
     tooltip: { trigger: 'axis' },
-    grid: { left: '3%', right: '4%', bottom: '3%', top: '10%', containLabel: true },
+    legend: { bottom: '0%', left: 'center', textStyle: { color: '#6B6B6B' } },
+    grid: { left: '3%', right: '4%', bottom: '12%', top: '10%', containLabel: true },
     xAxis: {
       type: 'category',
       boundaryGap: false,
@@ -311,24 +295,55 @@ const initCharts = () => {
     },
     yAxis: {
       type: 'value',
+      minInterval: 1,
       splitLine: { lineStyle: { color: '#F0EFEA', type: 'dashed' } },
       axisLabel: { color: '#6B6B6B' }
     },
-    series: [{
-      type: 'line',
-      smooth: true,
-      data: data,
-      itemStyle: { color: '#10B981' },
-      areaStyle: {
-        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-          { offset: 0, color: 'rgba(16, 185, 129, 0.3)' },
-          { offset: 1, color: 'rgba(16, 185, 129, 0.01)' }
-        ])
+    series: [
+      {
+        name: '作业提交',
+        type: 'line',
+        smooth: true,
+        data: submissions,
+        itemStyle: { color: '#10B981' },
+        areaStyle: {
+          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: 'rgba(16, 185, 129, 0.3)' },
+            { offset: 1, color: 'rgba(16, 185, 129, 0.01)' }
+          ])
+        }
+      },
+      {
+        name: '答疑提问',
+        type: 'line',
+        smooth: true,
+        data: questions,
+        itemStyle: { color: '#3B82F6' },
+        areaStyle: {
+          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: 'rgba(59, 130, 246, 0.25)' },
+            { offset: 1, color: 'rgba(59, 130, 246, 0.01)' }
+          ])
+        }
+      },
+      {
+        name: '知识库引用',
+        type: 'line',
+        smooth: true,
+        data: kb,
+        itemStyle: { color: '#8B5CF6' },
+        areaStyle: {
+          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: 'rgba(139, 92, 246, 0.2)' },
+            { offset: 1, color: 'rgba(139, 92, 246, 0.01)' }
+          ])
+        }
       }
-    }]
+    ]
   }
 
   // 作业完成情况饼图
+  const { done, pending, overdue } = completionData.value
   completionOption.value = {
     tooltip: { trigger: 'item' },
     legend: { bottom: '0%', left: 'center', textStyle: { color: '#6B6B6B' } },
@@ -346,31 +361,34 @@ const initCharts = () => {
         label: { show: true, fontSize: 18, fontWeight: 'bold', color: '#1E190F' }
       },
       data: [
-        { value: 148, name: '已批改', itemStyle: { color: '#10B981' } },
-        { value: 8, name: '待批改', itemStyle: { color: '#F59E0B' } }
+        { value: done, name: '已完成', itemStyle: { color: '#10B981' } },
+        { value: pending, name: '待批改', itemStyle: { color: '#F59E0B' } },
+        { value: overdue, name: '已逾期', itemStyle: { color: '#EF4444' } }
       ]
     }]
   }
 
   // 知识库使用柱状图
+  const { docs, chunks, references, gradings } = kbUsageData.value
   kbOption.value = {
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
     grid: { left: '3%', right: '4%', bottom: '3%', top: '10%', containLabel: true },
     xAxis: {
       type: 'category',
-      data: ['文档', '视频', '习题', '代码'],
+      data: ['文档', '知识分块', '引用', 'AI 批改'],
       axisLine: { lineStyle: { color: '#DAD5C8' } },
       axisLabel: { color: '#6B6B6B' }
     },
     yAxis: {
       type: 'value',
+      minInterval: 1,
       splitLine: { lineStyle: { color: '#F0EFEA', type: 'dashed' } },
       axisLabel: { color: '#6B6B6B' }
     },
     series: [{
       type: 'bar',
       barWidth: '40%',
-      data: [120, 200, 150, 80],
+      data: [docs, chunks, references, gradings],
       itemStyle: {
         color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
           { offset: 0, color: '#10B981' },
@@ -395,27 +413,43 @@ const refreshData = async () => {
 }
 
 const loadDashboardData = async () => {
-  // TODO: 调用 API 加载数据
-  // 模拟数据
-  metrics.totalStudents = 42
-  metrics.submissionCount = 156
-  metrics.gradedCount = 148
-  metrics.avgScore = '85.6'
-  metrics.chatCount = 328
-  metrics.activeStudents = 38
-  
-  hotQuestions.value = [
-    { id: 1, text: '如何理解机器学习中的过拟合问题？', studentCount: 12, trend: 15 },
-    { id: 2, text: 'Python 装饰器的使用场景有哪些？', studentCount: 9, trend: 8 },
-    { id: 3, text: '数据库索引的原理是什么？', studentCount: 7, trend: -3 },
-    { id: 4, text: '如何优化神经网络的训练速度？', studentCount: 6, trend: 22 },
-    { id: 5, text: 'RESTful API 设计规范', studentCount: 5, trend: 5 },
-    { id: 6, text: 'Git 分支管理策略', studentCount: 4, trend: -8 },
-    { id: 7, text: 'Docker 容器化部署流程', studentCount: 4, trend: 12 },
-    { id: 8, text: 'Vue3 组合式 API 优势', studentCount: 3, trend: 0 }
-  ]
-  
-  initCharts()
+  if (!selectedCourseId.value) return
+  const courseId = selectedCourseId.value
+  const range = Number(selectedTimeRange.value) || 30
+  try {
+    const res = await fetch(`/api/dashboard/overview?course_id=${courseId}&range=${range}`, {
+      method: 'GET',
+      credentials: 'include',
+      headers: authHeaders(),
+    })
+    if (!res.ok) return
+    const data = await res.json()
+
+    // 核心指标
+    Object.assign(metrics, {
+      totalStudents: data.metrics.total_students,
+      submissionCount: data.metrics.submission_count,
+      gradedCount: data.metrics.graded_count,
+      avgScore: data.metrics.avg_score ?? '0',
+      chatCount: data.metrics.chat_count,
+      activeStudents: data.metrics.active_students,
+    })
+
+    // 热门问题
+    hotQuestions.value = (data.hot_questions || []).map((q: any) => ({
+      id: q.text,
+      text: q.text,
+      studentCount: q.count,
+      trend: 0,
+    }))
+
+    // 图表数据
+    completionData.value = data.completion || { done: 0, pending: 0, overdue: 0 }
+    kbUsageData.value = data.kb_usage || { docs: 0, chunks: 0, references: 0, gradings: 0 }
+    trendData.value = data.trend || { labels: [], submissions: [], questions: [], kb: [] }
+  } finally {
+    initCharts()
+  }
 }
 
 const exportReport = () => {
@@ -452,7 +486,7 @@ const viewStudents = () => {
   window.location.href = '/dashboard/students'
 }
 
-// 监听课程变化
+// 监听课程下拉变化：切换课程并重新拉整份看板数据
 watch(selectedCourseId, (newId) => {
   if (newId) {
     courseStore.setActiveCourse(newId)
@@ -460,18 +494,35 @@ watch(selectedCourseId, (newId) => {
   }
 })
 
-// 监听时间范围变化，更新图表
+// 监听时间范围下拉变化：以新范围重新拉取看板数据
+watch(selectedTimeRange, () => {
+  if (selectedCourseId.value) {
+    loadDashboardData()
+  }
+})
+
+// 监听趋势粒度切换：仅重绘图表，不重新请求数据
 watch(selectedTrendDays, () => {
   initCharts()
 })
 
-onMounted(() => {
-  loadDashboardData()
-  
+onMounted(async () => {
+  // 加载课程下拉选项
+  if (courseStore.courses.length === 0) {
+    try {
+      await courseStore.fetchCourses()
+    } catch (e) {
+      console.error('加载课程列表失败:', e)
+    }
+  }
+
   // 初始化选中课程
   if (courseStore.courses.length > 0) {
-    selectedCourseId.value = courseStore.activeCourseId || courseStore.courses[0].id
+    const saved = courseStore.currentCourseId || courseStore.courses[0].id
+    selectedCourseId.value = saved
   }
+
+  await loadDashboardData()
 })
 </script>
 

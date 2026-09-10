@@ -107,7 +107,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useChatStore } from '@/stores/chat.store'
 import { useCourseStore } from '@/stores/course.store'
 import { storeToRefs } from 'pinia'
@@ -194,6 +194,10 @@ const batchDelete = async () => {
     console.error('批量删除失败:', error)
   }
 }
+
+onMounted(() => {
+  chatStore.refreshDeletedSessions()
+})
 </script>
 
 <style lang="scss" scoped>

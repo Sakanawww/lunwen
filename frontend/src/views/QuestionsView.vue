@@ -143,7 +143,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import DropdownSelect from '@/components/form/DropdownSelect.vue'
 import { useCourseStore } from '@/stores/course.store'
 
@@ -181,9 +181,20 @@ const courseOptions = computed(() => {
   return courseStore.courses.map(c => ({ value: c.id, label: c.name }))
 })
 
+// 认证请求头
+const authHeaders = () => ({
+  'Content-Type': 'application/json',
+  'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
+})
+
 // 方法
 const handleSubmit = async () => {
-  if (!topic.value.trim()) {
+  const topicVal = topic.value.trim()
+  if (!selectedCourseId.value) {
+    showToast('请先选择课程', 'error')
+    return
+  }
+  if (!topicVal) {
     showToast('请填写知识点', 'error')
     return
   }
@@ -192,58 +203,75 @@ const handleSubmit = async () => {
   message.value = ''
 
   try {
-    await new Promise(resolve => setTimeout(resolve, 2000))
-    
+    const res = await fetch('/api/question/generate', {
+      method: 'POST',
+      credentials: 'include',
+      headers: authHeaders(),
+      body: JSON.stringify({
+        course_id: selectedCourseId.value,
+        topic: topicVal,
+        num: numQuestions.value,
+        difficulty: difficulty.value,
+      }),
+    })
+    if (!res.ok) {
+      const err = await res.json().catch(() => null)
+      throw new Error(err?.detail || '生成失败')
+    }
+    const data = await res.json()
+
     messageSuccess.value = true
-    message.value = `已生成 ${numQuestions.value} 道试题`
+    message.value = `已生成 ${data.count} 道试题`
     topic.value = ''
-    
+
     await loadQuestions()
   } catch (error) {
     messageSuccess.value = false
-    message.value = '生成失败，请稍后重试'
+    message.value = (error as Error).message || '生成失败，请稍后重试'
   } finally {
     isGenerating.value = false
   }
 }
 
 const loadQuestions = async () => {
-  questions.value = [
-    {
-      id: 1,
-      type: 'short',
-      stem: '请简述机器学习中过拟合的概念及其常见解决方法。',
-      difficulty: 3,
-      source: 'ai'
-    },
-    {
-      id: 2,
-      type: 'choice',
-      stem: '以下哪个排序算法的平均时间复杂度为 O(nlogn)？A. 冒泡排序 B. 快速排序 C. 插入排序 D. 选择排序',
-      difficulty: 2,
-      source: 'ai'
-    },
-    {
-      id: 3,
-      type: 'fill',
-      stem: '在二叉树遍历中，____ 遍历的顺序是：左子树 → 根节点 → 右子树。',
-      difficulty: 2,
-      source: 'manual'
-    },
-    {
-      id: 4,
-      type: 'short',
-      stem: '请解释数据库事务的 ACID 特性分别代表什么含义。',
-      difficulty: 4,
-      source: 'ai'
+  if (!selectedCourseId.value) {
+    questions.value = []
+    return
+  }
+  try {
+    const res = await fetch(`/api/question/list/${selectedCourseId.value}`, {
+      method: 'GET',
+      credentials: 'include',
+      headers: { 'Authorization': authHeaders().Authorization },
+    })
+    if (!res.ok) {
+      questions.value = []
+      return
     }
-  ]
+    const data = await res.json()
+    questions.value = (data || []).map((q: any) => ({
+      id: q.id,
+      type: q.type,
+      stem: q.stem,
+      difficulty: q.difficulty ?? 3,
+      source: q.source || 'ai',
+    }))
+  } catch (e) {
+    console.error('加载试题失败:', e)
+    questions.value = []
+  }
 }
 
 const deleteQuestion = async (id: number) => {
   if (!confirm('删除后可在回收站恢复，确定继续？')) return
 
   try {
+    const res = await fetch(`/api/question/${id}?permanent=0`, {
+      method: 'DELETE',
+      credentials: 'include',
+      headers: authHeaders(),
+    })
+    if (!res.ok) throw new Error('删除失败')
     questions.value = questions.value.filter(q => q.id !== id)
     showToast('已移入回收站', 'success')
   } catch (error) {
@@ -255,11 +283,26 @@ const showToast = (msg: string, type: 'success' | 'error') => {
   console.log(`[${type}] ${msg}`)
 }
 
-onMounted(() => {
-  loadQuestions()
-  
+onMounted(async () => {
+  if (courseStore.courses.length === 0) {
+    try {
+      await courseStore.fetchCourses()
+    } catch (e) {
+      console.error('加载课程列表失败:', e)
+    }
+  }
+
   if (courseStore.courses.length > 0) {
-    selectedCourseId.value = courseStore.activeCourseId || courseStore.courses[0].id
+    selectedCourseId.value = courseStore.currentCourseId || courseStore.courses[0].id
+  }
+
+  await loadQuestions()
+})
+
+// 切换课程下拉时重新拉取该课程的试题库
+watch(selectedCourseId, () => {
+  if (selectedCourseId.value) {
+    loadQuestions()
   }
 })
 </script>

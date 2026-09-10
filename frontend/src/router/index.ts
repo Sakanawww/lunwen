@@ -60,6 +60,12 @@ const routes: RouteRecordRaw[] = [
         meta: { roles: ['teacher', 'admin'] },
       },
       {
+        path: 'questions/recycle',
+        name: 'QuestionsRecycle',
+        component: () => import('@/views/RecycleBinView.vue'),
+        meta: { roles: ['teacher', 'admin'] },
+      },
+      {
         path: 'practice',
         name: 'Practice',
         component: () => import('@/views/PracticeView.vue'),
