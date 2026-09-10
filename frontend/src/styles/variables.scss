@@ -1,0 +1,216 @@
+/**
+ * KONTUR 纸感 CRM 设计系统变量
+ * 严格遵循 design.md 规范 - 禁止修改色值和字号，仅可通过 design.md 变更
+ */
+
+:root {
+  // ========================================
+  // 核心色板 - KONTUR 纸感 CRM 风格
+  // ========================================
+  --ink: 30, 25, 15;           // 暖黑 #16150F - 主文字、侧边栏
+  --paper: 244, 242, 236;      // 暖纸 #F4F2EC - 页面背景
+  --card: 251, 250, 246;       // 浅卡 #FBFAF6 - 卡片背景
+  --line: 218, 213, 200;       // 暖灰 #DAD5C8 - 边框线
+  --green: 30, 92, 66;         // 强调绿 #1E5C42 - 成功/主按钮
+  --amber: 183, 121, 31;       // 琥珀 #B7791F - 警告
+
+  // ========================================
+  // 功能色板
+  // ========================================
+  --success-bg: 223, 232, 227;     // #DFE8E3
+  --warning-bg: 240, 230, 210;     // #F0E6D2
+  --danger-bg: 254, 242, 242;      // #FEF2F2
+  --destructive: 220, 38, 38;      // #DC2626
+  --danger-text: 185, 28, 28;      // #B91C1C
+
+  // ========================================
+  // 文字颜色
+  // ========================================
+  --text-primary: rgb(var(--ink));
+  --text-secondary: rgb(102, 102, 102);
+  --text-muted: rgb(161, 161, 170);
+
+  // ========================================
+  // 背景色
+  // ========================================
+  --bg-page: rgb(var(--paper));
+  --bg-card: rgb(var(--card));
+  --bg-tertiary: rgb(233, 229, 217);    // #E9E5D9
+  --bg-sidebar: rgb(var(--ink));
+
+  // ========================================
+  // 边框颜色
+  // ========================================
+  --border: rgb(var(--line));
+  --border-strong: rgb(208, 202, 188);
+
+  // ========================================
+  // 字体家族
+  // ========================================
+  --font-serif: 'Instrument Serif', 'Georgia', serif;
+  --font-sans: 'Archivo', -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-mono: 'IBM Plex Mono', 'Fira Code', Consolas, monospace;
+
+  // ========================================
+  // 字号系统 - 严格遵循 design.md 2.2 节
+  // ========================================
+  --text-xs: 10px;
+  --text-sm: 11px;
+  --text-base: 13px;
+  --text-lg: 14px;
+  --text-xl: 16px;
+  --text-2xl: 18px;
+  --text-3xl: 20px;
+  --text-page-title: 22px;
+  --text-metric-value: 28px;
+
+  // ========================================
+  // 字重
+  // ========================================
+  --font-normal: 400;
+  --font-medium: 500;
+  --font-semibold: 600;
+  --font-bold: 700;
+
+  // ========================================
+  // 字间距
+  // ========================================
+  --tracking-tight: -0.02em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.08em;
+  --tracking-wider: 0.14em;
+  --tracking-widest: 0.22em;
+
+  // ========================================
+  // 间距系统 - 8px 网格
+  // ========================================
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+
+  // 页面边距
+  --page-padding-x: 16px;
+  --page-padding-y: 24px;
+  --section-gap: 24px;
+  --card-gap: 16px;
+
+  // ========================================
+  // 圆角系统
+  // ========================================
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-full: 9999px;
+
+  // ========================================
+  // 阴影系统 - 极简，几乎无阴影
+  // ========================================
+  --shadow-sm: 0 1px 0 rgb(218, 213, 200, 0.5);
+  --shadow-md: 0 2px 4px rgb(218, 213, 200, 0.3);
+  --shadow-lg: 0 4px 8px rgb(218, 213, 200, 0.2);
+
+  // ========================================
+  // 布局尺寸
+  // ========================================
+  --navbar-height: 56px;
+  --sidebar-width: 224px;
+  --sidebar-collapsed-width: 64px;
+}
+
+// ========================================
+// SCSS 变量 - 供组件内部使用
+// ========================================
+
+// 颜色映射 (RGB 格式，用于 rgba 混合)
+$ink: var(--ink);
+$paper: var(--paper);
+$card: var(--card);
+$line: var(--line);
+$green: var(--green);
+$amber: var(--amber);
+
+// 功能色
+$success-bg: var(--success-bg);
+$warning-bg: var(--warning-bg);
+$danger-bg: var(--danger-bg);
+$destructive: var(--destructive);
+$danger-text: var(--danger-text);
+
+// 文字
+$text-primary: var(--text-primary);
+$text-secondary: var(--text-secondary);
+$text-muted: var(--text-muted);
+
+// 背景
+$bg-page: var(--bg-page);
+$bg-card: var(--bg-card);
+$bg-tertiary: var(--bg-tertiary);
+$bg-sidebar: var(--bg-sidebar);
+
+// 边框
+$border: var(--border);
+$border-strong: var(--border-strong);
+
+// 字体
+$font-serif: var(--font-serif);
+$font-sans: var(--font-sans);
+$font-mono: var(--font-mono);
+
+// 字号
+$text-xs: var(--text-xs);
+$text-sm: var(--text-sm);
+$text-base: var(--text-base);
+$text-lg: var(--text-lg);
+$text-xl: var(--text-xl);
+$text-2xl: var(--text-2xl);
+$text-3xl: var(--text-3xl);
+$text-page-title: var(--text-page-title);
+$text-metric-value: var(--text-metric-value);
+
+// 字重
+$font-normal: var(--font-normal);
+$font-medium: var(--font-medium);
+$font-semibold: var(--font-semibold);
+$font-bold: var(--font-bold);
+
+// 字间距
+$tracking-tight: var(--tracking-tight);
+$tracking-normal: var(--tracking-normal);
+$tracking-wide: var(--tracking-wide);
+$tracking-wider: var(--tracking-wider);
+$tracking-widest: var(--tracking-widest);
+
+// 间距
+$space-1: var(--space-1);
+$space-2: var(--space-2);
+$space-3: var(--space-3);
+$space-4: var(--space-4);
+$space-5: var(--space-5);
+$space-6: var(--space-6);
+$space-8: var(--space-8);
+$space-10: var(--space-10);
+$space-12: var(--space-12);
+
+// 圆角
+$radius-sm: var(--radius-sm);
+$radius-md: var(--radius-md);
+$radius-lg: var(--radius-lg);
+$radius-xl: var(--radius-xl);
+$radius-full: var(--radius-full);
+
+// 阴影
+$shadow-sm: var(--shadow-sm);
+$shadow-md: var(--shadow-md);
+$shadow-lg: var(--shadow-lg);
+
+// 布局
+$navbar-height: var(--navbar-height);
+$sidebar-width: var(--sidebar-width);
+$sidebar-collapsed-width: var(--sidebar-collapsed-width);

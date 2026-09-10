@@ -1,0 +1,324 @@
+/* KONTUR 纸感 CRM 设计系统 - 全局样式 */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ========================================
+   CSS 变量定义 - 严格遵循 design.md 规范
+   ======================================== */
+:root {
+  /* 核心色板 - KONTUR 纸感 CRM 风格 */
+  --ink: 30, 25, 15;           /* 暖黑 #16150F */
+  --paper: 244, 242, 236;      /* 暖纸 #F4F2EC */
+  --card: 251, 250, 246;       /* 浅卡 #FBFAF6 */
+  --line: 218, 213, 200;       /* 暖灰 #DAD5C8 */
+  --green: 30, 92, 66;         /* 强调绿 #1E5C42 */
+  --amber: 183, 121, 31;       /* 琥珀 #B7791F */
+  
+  /* 功能色 */
+  --success: 223, 232, 227;    /* 成功背景 #DFE8E3 */
+  --warning: 240, 230, 210;    /* 警告背景 #F0E6D2 */
+  --danger: 254, 242, 242;     /* 危险背景 #FEF2F2 */
+  --destructive: 220, 38, 38;  /* 破坏性操作 #DC2626 */
+  --danger-text: 185, 28, 28;  /* 危险文字 #B91C1C */
+  
+  /* 文字颜色 */
+  --text-primary: rgb(var(--ink));
+  --text-secondary: rgb(102, 102, 102);
+  --text-muted: rgb(161, 161, 170);
+  
+  /* 背景色 */
+  --bg-page: rgb(var(--paper));
+  --bg-card: rgb(var(--card));
+  --bg-tertiary: rgb(233, 229, 217);
+  --bg-sidebar: rgb(var(--ink));
+  
+  /* 边框颜色 */
+  --border: rgb(var(--line));
+  --border-strong: rgb(208, 202, 188);
+  
+  /* 字体家族 */
+  --font-serif: 'Instrument Serif', 'Georgia', serif;
+  --font-sans: 'Archivo', -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-mono: 'IBM Plex Mono', 'Fira Code', Consolas, monospace;
+  
+  /* 字号系统 */
+  --text-xs: 10px;
+  --text-sm: 11px;
+  --text-base: 13px;
+  --text-lg: 14px;
+  --text-xl: 16px;
+  --text-2xl: 18px;
+  --text-3xl: 20px;
+  --text-page-title: 22px;
+  --text-metric-value: 28px;
+  
+  /* 字重 */
+  --font-normal: 400;
+  --font-medium: 500;
+  --font-semibold: 600;
+  --font-bold: 700;
+  
+  /* 字间距 */
+  --tracking-tight: -0.02em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.08em;
+  --tracking-wider: 0.14em;
+  --tracking-widest: 0.22em;
+  
+  /* 间距系统 (8px 网格) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  
+  /* 页面边距 */
+  --page-padding-x: 16px;
+  --page-padding-y: 24px;
+  --section-gap: 24px;
+  --card-gap: 16px;
+  
+  /* 圆角系统 */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-full: 9999px;
+  
+  /* 阴影系统 */
+  --shadow-sm: 0 1px 0 rgb(218, 213, 200, 0.5);
+  --shadow-md: 0 2px 4px rgb(218, 213, 200, 0.3);
+  --shadow-lg: 0 4px 8px rgb(218, 213, 200, 0.2);
+  
+  /* 布局尺寸 */
+  --navbar-height: 56px;
+  --sidebar-width: 224px;
+  --sidebar-collapsed-width: 64px;
+}
+
+/* ========================================
+   基础重置
+   ======================================== */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  font-weight: var(--font-normal);
+  line-height: 1.5;
+  color: var(--text-primary);
+  background-color: var(--bg-page);
+  min-height: 100vh;
+}
+
+/* ========================================
+   字体样式
+   ======================================== */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: var(--font-medium);
+  color: var(--text-primary);
+  line-height: 1.25;
+}
+
+.page-title {
+  font-family: var(--font-serif);
+  font-size: var(--text-page-title);
+  font-weight: var(--font-normal);
+  letter-spacing: var(--tracking-tight);
+}
+
+/* ========================================
+   链接样式
+   ======================================== */
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* ========================================
+   按钮基础样式
+   ======================================== */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  height: 40px;
+  padding: 0 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn:hover {
+  background: rgba(var(--ink), 0.04);
+  box-shadow: none;
+}
+
+.btn:active {
+  box-shadow: none;
+}
+
+.btn-primary {
+  background: rgb(var(--green));
+  color: rgb(var(--paper));
+  border: none;
+  box-shadow: 0 2px 0 rgba(var(--ink), 0.2);
+}
+
+.btn-primary:hover {
+  background: rgb(25, 75, 55);
+}
+
+.btn-danger {
+  background: rgb(var(--destructive));
+  color: white;
+  border: none;
+}
+
+.btn-danger:hover {
+  background: rgb(185, 28, 28);
+}
+
+/* 按钮尺寸 */
+.btn-sm {
+  height: 32px;
+  padding: 0 12px;
+  font-size: 11.5px;
+}
+
+.btn-lg {
+  height: 44px;
+  padding: 0 24px;
+  font-size: 14.5px;
+}
+
+/* ========================================
+   卡片样式
+   ======================================== */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-5) var(--space-6);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ========================================
+   表单样式
+   ======================================== */
+.form-input {
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+  font-size: var(--text-base);
+  font-family: var(--font-sans);
+  color: var(--text-primary);
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--text-primary);
+  box-shadow: 0 0 0 2px var(--bg-card), 0 0 0 4px rgba(var(--ink), 0.15);
+}
+
+.form-label {
+  display: block;
+  font-size: var(--text-lg);
+  font-weight: var(--font-medium);
+  color: var(--text-primary);
+  margin-bottom: var(--space-2);
+}
+
+/* ========================================
+   表格样式
+   ======================================== */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.table th {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wider);
+  opacity: 0.6;
+  background: var(--bg-tertiary);
+  text-align: left;
+  padding: 12px 16px;
+}
+
+.table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.table tbody tr:hover {
+  background: rgba(var(--ink), 0.02);
+}
+
+/* ========================================
+   徽章/标签样式
+   ======================================== */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+}
+
+/* ========================================
+   工具类
+   ======================================== */
+.text-muted {
+  color: var(--text-muted);
+}
+
+.text-secondary {
+  color: var(--text-secondary);
+}
+
+.font-serif {
+  font-family: var(--font-serif);
+}
+
+.font-mono {
+  font-family: var(--font-mono);
+}
+
+.tracking-wide {
+  letter-spacing: var(--tracking-wide);
+}
+
+.tracking-wider {
+  letter-spacing: var(--tracking-wider);
+}
