@@ -12,15 +12,40 @@
 - SESSION_TTL: 会话过期时间（秒，默认 28800=8 小时）
 """
 import os
+import logging
 from datetime import datetime, timedelta
 
 import redis
+
+logger = logging.getLogger(__name__)
 
 # 配置 - 完全从环境变量读取
 REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
 REDIS_PORT = int(os.getenv("REDIS_PORT", "6379"))
 REDIS_DB = int(os.getenv("REDIS_DB", "0"))
 TTL_SECONDS = int(os.getenv("SESSION_TTL", "28800"))  # 默认 8 小时
+
+
+def _create_client():
+    """连接 Redis；连接失败时降级为内存 Redis（fakeredis）。
+
+    生产环境必须部署真实 Redis；内存 Redis 仅用于本地开发，
+    重启后会话丢失。
+    """
+    client = redis.Redis(
+        host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB, decode_responses=True
+    )
+    try:
+        client.ping()
+        return client
+    except redis.exceptions.ConnectionError:
+        import fakeredis
+
+        logger.warning(
+            "Redis (%s:%s) 连接失败，降级为内存 Redis（仅限开发环境，重启后会话丢失）",
+            REDIS_HOST, REDIS_PORT,
+        )
+        return fakeredis.FakeStrictRedis(decode_responses=True)
 
 
 class SessionStore:
@@ -42,14 +67,7 @@ class SessionStore:
             ttl: 会话过期时间（秒）
         """
         self.ttl = ttl
-        self._client = redis.Redis(
-            host=host,
-            port=port,
-            db=db,
-            decode_responses=True
-        )
-        # 测试连接
-        self._client.ping()
+        self._client = _create_client()
     
     def create_session(self, user_id: int, real_name: str, role: str) -> str:
         """创建新会话。

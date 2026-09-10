@@ -47,7 +47,6 @@ async def general_exception_handler(request: Request, exc: Exception):
         extra={
             "path": request.url.path,
             "method": request.method,
-            "exc_info": True,
         },
         exc_info=True
     )

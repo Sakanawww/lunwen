@@ -4,7 +4,7 @@ import time
 
 # 固定的本地开发服务器地址
 BACKEND_URL = "http://127.0.0.1:8000"
-FRONTEND_URL = "http://127.0.0.1:5176"
+FRONTEND_URL = "http://127.0.0.1:5173"
 
 # 允许的协议和目标主机白名单
 ALLOWED_SCHEMES = {"http", "https"}
