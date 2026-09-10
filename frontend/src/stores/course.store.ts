@@ -41,8 +41,8 @@ export const useCourseStore = defineStore('course', () => {
     error.value = null
     
     try {
-      // 使用简单请求（不触发 CORS 预检）
-      const response = await fetch('http://127.0.0.1:8000/api/courses', {
+      // 使用相对路径，通过 Vite 代理转发到后端
+      const response = await fetch('/courses', {
         method: 'GET',
         credentials: 'include',
       })

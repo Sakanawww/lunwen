@@ -15,11 +15,8 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/',
     component: () => import('@/layouts/DashboardLayout.vue'),
+    redirect: '/dashboard',
     children: [
-      {
-        path: '',
-        redirect: '/dashboard',
-      },
       {
         path: 'dashboard',
         name: 'Dashboard',
@@ -87,8 +84,8 @@ const router = createRouter({
   routes,
 })
 
-// 简化的路由守卫 - 仅检查 token 是否存在
-router.beforeEach((to, _from, next) => {
+// 全局前置守卫 - 使用返回值模式（Vue Router 4.3+ 推荐）
+router.beforeEach((to, _from) => {
   const token = localStorage.getItem('token')
   const userStr = localStorage.getItem('user')
   let user: any = null
@@ -104,32 +101,32 @@ router.beforeEach((to, _from, next) => {
   const isAuthenticated = !!token && !!user
   const publicRoutes = ['/login', '/register']
   
-  // 公开路由
-  if (publicRoutes.includes(to.path)) {
+  // 公开路由 - 已登录用户访问登录页时重定向
+  if (to.path === '/login' || to.path === '/register') {
     if (isAuthenticated) {
-      next('/dashboard')
-      return
+      // 根据角色重定向到不同页面
+      const role = user?.role
+      if (role === 'student') return '/chat'
+      return '/dashboard'
     }
-    next()
-    return
+    return true
   }
   
   // 需要认证的路由
   if (!isAuthenticated) {
-    next('/login')
-    return
+    return '/login'
   }
   
   // 检查角色
   if (to.meta.roles && user) {
     const roles = to.meta.roles as string[]
     if (!roles.includes(user.role)) {
-      next('/dashboard')
-      return
+      // 角色不符，重定向到首页
+      return '/chat'
     }
   }
   
-  next()
+  return true
 })
 
 export default router

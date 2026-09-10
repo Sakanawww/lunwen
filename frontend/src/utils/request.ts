@@ -2,8 +2,8 @@ import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosError } f
 import { useAuthStore } from '@/stores/auth.store'
 import { sanitizeInput } from './security'
 
-// API 基础 URL
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'
+// API 基础 URL - 开发环境使用 Vite 代理，生产环境可配置
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || ''
 
 // 创建 axios 实例
 const request: AxiosInstance = axios.create({

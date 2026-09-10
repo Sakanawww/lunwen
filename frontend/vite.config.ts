@@ -13,12 +13,24 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      '/api/auth': {
+      // 代理所有 API 请求到后端
+      '/api': {
         target: 'http://localhost:8000',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, ''),
       },
-      '/api': {
+      // 代理认证相关请求
+      '/auth': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+      // 代理课程相关请求
+      '/courses': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+      // 代理聊天相关请求
+      '/chat': {
         target: 'http://localhost:8000',
         changeOrigin: true,
       },

@@ -101,8 +101,10 @@
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
+import { useAuthStore } from '@/stores/auth.store'
 
 const router = useRouter()
+const authStore = useAuthStore()
 
 const form = reactive({
   username: 'student',
@@ -111,6 +113,9 @@ const form = reactive({
 
 const isSubmitting = ref(false)
 const errorMessage = ref('')
+
+// API 基础 URL - 开发环境使用 Vite 代理
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || ''
 
 const handleLogin = async () => {
   if (isSubmitting.value) return
@@ -121,8 +126,8 @@ const handleLogin = async () => {
   try {
     console.log('开始登录...')
     
-    // 直接使用 axios 发送请求
-    const response = await axios.post('http://127.0.0.1:8000/auth/login', {
+    // 使用相对路径，通过 Vite 代理转发到后端
+    const response = await axios.post(`${API_BASE_URL}/auth/login`, {
       username: form.username,
       password: form.password,
     }, {
@@ -136,11 +141,8 @@ const handleLogin = async () => {
     
     const result = response.data
     
-    // 保存 token 到 localStorage
-    localStorage.setItem('token', result.token)
-    
-    // 保存用户信息到 localStorage
-    localStorage.setItem('user', JSON.stringify(result.user))
+    // 使用 store 方法设置认证状态
+    authStore.setAuth(result.token, result.user)
     
     console.log('登录成功，token:', result.token)
     console.log('用户信息:', result.user)
@@ -151,14 +153,10 @@ const handleLogin = async () => {
     
     if (role === 'student') {
       targetPath = '/chat'  // 学生跳转到智能答疑
-    } else if (role === 'teacher') {
-      targetPath = '/dashboard'
-    } else if (role === 'admin') {
-      targetPath = '/dashboard'
     }
     
-    // 直接跳转，确保新页面加载完整状态
-    window.location.href = targetPath
+    // 使用 router.push 进行前端路由跳转
+    await router.push(targetPath)
     
   } catch (error: any) {
     console.error('登录失败:', error)

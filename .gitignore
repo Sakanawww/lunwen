@@ -20,3 +20,5 @@ data/faiss_index/
 
 # 日志
 *.log
+# 进程 PID 文件
+scripts/.pids/

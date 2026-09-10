@@ -80,8 +80,8 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = null
     
     try {
-      // 调用实际登录 API
-      const response = await fetch('http://127.0.0.1:8000/auth/login', {
+      // 使用相对路径，通过 Vite 代理转发到后端
+      const response = await fetch('/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
