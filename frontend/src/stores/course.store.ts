@@ -42,7 +42,7 @@ export const useCourseStore = defineStore('course', () => {
     
     try {
       // 使用相对路径，通过 Vite 代理转发到后端
-      const response = await fetch('/courses', {
+      const response = await fetch('/api/courses', {
         method: 'GET',
         credentials: 'include',
       })

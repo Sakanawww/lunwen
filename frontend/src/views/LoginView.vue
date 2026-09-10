@@ -88,6 +88,11 @@
           <router-link to="/register" class="footer-link">立即注册</router-link>
         </div>
 
+        <!-- 演示账号提示 -->
+        <div class="demo-hint">
+          <span class="demo-hint-text">演示账号：student　密码：123456</span>
+        </div>
+
         <!-- 版本信息 -->
         <div class="version-info">
           <span class="version-text">v2.0.0</span>
@@ -107,8 +112,8 @@ const router = useRouter()
 const authStore = useAuthStore()
 
 const form = reactive({
-  username: 'student',
-  password: '123456',
+  username: '',
+  password: '',
 })
 
 const isSubmitting = ref(false)
@@ -438,6 +443,17 @@ const handleLogin = async () => {
 .footer-link:hover {
   color: rgb(25, 75, 55);
   text-decoration: underline;
+}
+
+/* ========== 演示账号提示 ========== */
+.demo-hint {
+  margin-top: var(--space-4);
+  text-align: center;
+}
+
+.demo-hint-text {
+  font-size: 12px;
+  color: rgb(var(--ink) / 0.45);
 }
 
 /* ========== 版本信息 ========== */

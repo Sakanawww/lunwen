@@ -8,8 +8,12 @@ from app.models import models as m
 
 
 def current_user(request: Request, db: OrmSession = Depends(get_db)) -> m.User:
-    """从 Cookie token 还原当前登录用户；未登录则抛出 401。"""
+    """从 Cookie 或 Authorization: Bearer 还原当前登录用户；未登录则抛出 401。"""
     token = request.cookies.get("token") or ""
+    if not token:
+        auth = request.headers.get("Authorization") or ""
+        if auth.lower().startswith("bearer "):
+            token = auth[7:].strip()
     sess = sstore.get_session(token)
     if not sess:
         raise HTTPException(
