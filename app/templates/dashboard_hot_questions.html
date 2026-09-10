@@ -32,7 +32,7 @@
   .hq-meta { font-size: 12.5px; color: var(--text-muted); margin-top: 6px; display: flex; gap: 14px; }
   .hq-meta span { display: inline-flex; align-items: center; gap: 5px; }
   .hq-empty { text-align: center; color: var(--text-muted); padding: 48px 0; }
-  .hq-empty i.ri { font-size: 40px; color: #CBD5E1; display: block; margin-bottom: 12px; }
+  .hq-empty i.ri { font-size: 40px; color: var(--border-strong); display: block; margin-bottom: 12px; }
   .hq-loading { display: flex; align-items: center; justify-content: center; gap: 8px;
     padding: 40px 0; color: var(--text-secondary); }
   .fade-up { animation: hqFade .35s ease both; }
@@ -60,15 +60,15 @@
       <i class="ri-search-line" aria-hidden="true"></i>
       <input type="text" id="kwInput" placeholder="搜索问题关键字…" aria-label="搜索问题">
     </div>
-    <button class="btn btn-grad" id="searchBtn"><i class="ri-refresh-line"></i> 查询</button>
+    <button class="btn btn-grad" id="searchBtn"><i class="ri-refresh-line" aria-hidden="true"></i> 查询</button>
   </div>
 
   <div class="hq-list" id="hqList">
-    <div class="hq-loading"><i class="ri-loader-4-line spinner"></i>加载中…</div>
+    <div class="hq-loading"><i class="ri-loader-4-line spinner" aria-hidden="true"></i>加载中…</div>
   </div>
 
   <div style="margin-top:18px;">
-    <a href="/dashboard" class="btn btn-ghost"><i class="ri-arrow-left-line"></i> 返回学情看板</a>
+    <a href="/dashboard" class="btn btn-ghost"><i class="ri-arrow-left-line" aria-hidden="true"></i> 返回学情看板</a>
   </div>
 </div>
 {% endblock %}
@@ -91,15 +91,15 @@
     }
     function load() {
       var cid = selectedValue(wrap) || active;
-      if (!cid) { box.innerHTML = '<div class="hq-empty"><i class="ri-book-open-line"></i>暂无课程</div>'; return; }
-      box.innerHTML = '<div class="hq-loading"><i class="ri-loader-4-line spinner"></i>加载中…</div>';
+      if (!cid) { box.innerHTML = '<div class="hq-empty"><i class="ri-book-open-line" aria-hidden="true"></i>暂无课程</div>'; return; }
+      box.innerHTML = '<div class="hq-loading"><i class="ri-loader-4-line spinner" aria-hidden="true"></i>加载中…</div>';
       var kw = encodeURIComponent(kwInput.value.trim());
       fetch('/api/dashboard/' + cid + '/hot-questions?limit=200' + (kw ? '&kw=' + kw : '')).then(function (r) {
         if (!r.ok) throw new Error('HTTP ' + r.status);
         return r.json();
       }).then(function (data) {
         if (!data.items || !data.items.length) {
-          box.innerHTML = '<div class="hq-empty"><i class="ri-question-line"></i>暂无提问数据</div>';
+          box.innerHTML = '<div class="hq-empty"><i class="ri-question-line" aria-hidden="true"></i>暂无提问数据</div>';
           return;
         }
         box.innerHTML = data.items.map(function (q, i) {
@@ -109,13 +109,13 @@
             '<div class="hq-content">' +
               '<div class="hq-text">' + esc(q.text) + '</div>' +
               '<div class="hq-meta">' +
-                '<span><i class="ri-question-answer-line"></i>' + q.count + ' 次提问</span>' +
+                '<span><i class="ri-question-answer-line" aria-hidden="true"></i>' + q.count + ' 次提问</span>' +
               '</div>' +
             '</div>' +
           '</div>';
         }).join('');
       }).catch(function (e) {
-        box.innerHTML = '<div class="hq-empty"><i class="ri-error-warning-line"></i>加载失败：' + esc(e.message) + '</div>';
+        box.innerHTML = '<div class="hq-empty"><i class="ri-error-warning-line" aria-hidden="true"></i>加载失败：' + esc(e.message) + '</div>';
       });
     }
     document.getElementById('searchBtn').addEventListener('click', load);

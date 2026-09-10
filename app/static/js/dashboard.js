@@ -10,7 +10,7 @@
     return;
   }
 
-  // ---- 图表配色（与 spec 第九节一致） ----
+  // ---- 图表配色（对齐 variables.css 的 --viz-* 数据可视化色板） ----
   var BLUE = '#5B7FFF', PURPLE = '#8B5CF6', GREEN = '#10B981',
       YELLOW = '#F59E0B', RED = '#EF4444', CYAN = '#06B6D4';
   var MUTED = '#667788', FAINT = '#99AAB5', BORDER = '#E8ECF0';

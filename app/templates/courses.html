@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block title %}课程管理{% endblock %}
 {% block nav_courses %}class="active"{% endblock %}
+{% block page_title %}课程管理{% endblock %}
 
 {% block head %}
 <style>
@@ -21,12 +22,12 @@
   .c-actions { display: flex; gap: 8px; justify-content: flex-end; }
   .c-actions .btn { min-height: 34px; padding: 5px 12px; font-size: 12.5px; }
   .role-chip { font-size: 11.5px; padding: 2px 9px; border-radius: 999px; font-weight: 600; }
-  .role-owner { background: rgba(59,130,246,.14); color: #1D5FD0; }
-  .role-teacher { background: rgba(139,92,246,.14); color: #6D3FC0; }
-  .role-assistant { background: rgba(6,182,212,.14); color: #0891B2; }
-  .role-student { background: rgba(148,163,184,.14); color: #475569; }
+  .role-owner { background: var(--accent-soft); color: hsl(217 91% 36%); }
+  .role-teacher { background: hsl(258 90% 90% / .14); color: hsl(258 90% 45%); }
+  .role-assistant { background: hsl(189 94% 90% / .14); color: hsl(189 94% 40%); }
+  .role-student { background: hsl(215 16% 90% / .14); color: hsl(215 16% 40%); }
   .empty-courses { text-align: center; padding: 48px 0; color: var(--text-muted); }
-  .empty-courses i.ri { font-size: 42px; color: #CBD5E1; display: block; margin-bottom: 10px; }
+  .empty-courses i.ri { font-size: 42px; color: var(--border-strong); display: block; margin-bottom: 10px; }
   .member-row { display: flex; align-items: center; justify-content: space-between; padding: 6px 2px; border-bottom: 1px dashed var(--border); font-size: 13px; }
   .member-row:last-child { border-bottom: none; }
   .member-row select { min-height: 30px; padding: 3px 6px; font-size: 12.5px; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--bg-input); }
@@ -66,7 +67,7 @@
     <div class="sub">创建、编辑课程，管理课程成员与角色（RBAC）</div>
   </div>
   {% if user['role'] in ('teacher','admin') %}
-  <button class="btn btn-grad" onclick="openModal('create')"><i class="ri-add-line"></i> 新建课程</button>
+  <button class="btn btn-grad" onclick="openModal('create')"><i class="ri-add-line" aria-hidden="true"></i> 新建课程</button>
   {% endif %}
 </div>
 
@@ -109,7 +110,7 @@
       </div>
       <div class="modal-foot">
         <button type="button" class="btn btn-ghost" id="editCancel">取消</button>
-        <button type="submit" class="btn btn-grad" id="editSubmit"><i class="ri-check-line"></i> 保存</button>
+        <button type="submit" class="btn btn-grad" id="editSubmit"><i class="ri-check-line" aria-hidden="true"></i> 保存</button>
       </div>
     </form>
   </div>

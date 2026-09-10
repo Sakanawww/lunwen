@@ -38,17 +38,13 @@ def register(body: RegisterIn, db: OrmSession = Depends(get_db)):
 
 @router.post("/login")
 def login(body: LoginIn, db: OrmSession = Depends(get_db)):
-    """登录：校验后建立会话，把 token 写入 Cookie。"""
-    user = db.query(User).filter(
-        or_(User.username == body.username, User.username == body.username)
-    ).first()
+    """登录：校验后建立会话，返回 token 和用户信息。"""
+    user = db.query(User).filter(User.username == body.username).first()
     if not user or user.password_hash != hash_password(body.password):
         raise HTTPException(status_code=401, detail="用户名或密码错误")
 
-    token = sstore.create_session(user.id, user.real_name, user.role)
-    resp = RedirectResponse(url="/dashboard", status_code=303)
-    resp.set_cookie("token", token, httponly=True, max_age=28800)
-    return resp
+    token_value = sstore.create_session(user.id, user.real_name, user.role)
+    return {"token": token_value, "user": {"id": user.id, "username": user.username, "real_name": user.real_name, "email": "", "role": user.role}}
 
 
 @router.post("/logout")

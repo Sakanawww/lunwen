@@ -15,7 +15,7 @@
   .rb-item .rb-meta { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
   .rb-item .rb-actions { display: flex; gap: 8px; flex-shrink: 0; }
   .rb-empty { text-align: center; color: var(--text-muted); padding: 56px 20px; }
-  .rb-empty i { font-size: 40px; color: #CBD5E1; display: block; margin-bottom: 12px; }
+  .rb-empty i { font-size: 40px; color: var(--border-strong); display: block; margin-bottom: 12px; }
   .filter-row { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
 </style>
 {% endblock %}
@@ -26,7 +26,7 @@
     <h1><i class="ri-delete-bin-line" aria-hidden="true"></i>试题回收站</h1>
     <div class="sub">已删除的试题可在此恢复</div>
   </div>
-  <a href="/questions" class="btn btn-ghost"><i class="ri-arrow-left-line"></i> 返回试题库</a>
+  <a href="/questions" class="btn btn-ghost"><i class="ri-arrow-left-line" aria-hidden="true"></i> 返回试题库</a>
 </div>
 
 <div class="card">
@@ -41,18 +41,18 @@
   <div>
     {% for q in questions %}
     <div class="rb-item" data-id="{{ q.id }}">
-      <div class="rb-icon" style="color:var(--danger);font-size:18px;flex-shrink:0;"><i class="ri-delete-bin-6-line"></i></div>
+      <div class="rb-icon" style="color:var(--danger);font-size:18px;flex-shrink:0;"><i class="ri-delete-bin-6-line" aria-hidden="true"></i></div>
       <div class="rb-main">
         <div class="rb-stem">{{ q.stem[:60] }}</div>
         <div class="rb-meta">删除于 {{ q.deleted_at.strftime('%Y-%m-%d %H:%M') if q.deleted_at else '—' }}</div>
       </div>
       <div class="rb-actions">
-        <button class="btn btn-ghost" onclick="window.__restoreQ({{ q.id }})"><i class="ri-refresh-line"></i> 恢复</button>
-        <button class="btn btn-ghost" style="color:var(--danger);border-color:rgba(239,68,68,.4);" onclick="window.__purgeQ({{ q.id }})"><i class="ri-delete-bin-2-line"></i> 彻底删除</button>
+        <button class="btn btn-ghost" onclick="window.__restoreQ({{ q.id }})"><i class="ri-refresh-line" aria-hidden="true"></i> 恢复</button>
+        <button class="btn btn-ghost" style="color:var(--danger);border-color:rgba(239,68,68,.4);" onclick="window.__purgeQ({{ q.id }})"><i class="ri-delete-bin-2-line" aria-hidden="true"></i> 彻底删除</button>
       </div>
     </div>
     {% else %}
-    <div class="rb-empty" id="rbEmpty"><i class="ri-inbox-line"></i>回收站是空的</div>
+    <div class="rb-empty" id="rbEmpty"><i class="ri-inbox-line" aria-hidden="true"></i>回收站是空的</div>
     {% endfor %}
   </div>
 </div>

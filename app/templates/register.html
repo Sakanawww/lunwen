@@ -21,7 +21,7 @@
     position: relative;
     overflow: hidden;
     color: #fff;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, hsl(217 91% 56%) 0%, hsl(258 90% 60%) 100%);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -151,8 +151,8 @@
     width: 100%;
     max-width: 440px;
     background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 20px;
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius-lg);
     box-shadow: var(--shadow-lg);
     padding: 30px 32px 22px;
     animation: riseIn .45s ease both;
@@ -199,16 +199,16 @@
     font-size: 14.5px; font-family: inherit;
     color: var(--text-primary);
     background: var(--bg-input);
-    border: 2px solid var(--border);
+    border: 1px solid hsl(var(--input));
     border-radius: var(--radius-md);
     outline: none;
     transition: border-color var(--t-fast), box-shadow var(--t-fast);
   }
   .input-wrap input::placeholder { color: var(--text-muted); }
-  .input-wrap:focus-within .fa-prefix { color: var(--accent); }
+  .input-wrap:focus-within .fa-prefix { color: hsl(var(--ring) / .8); }
   .input-wrap input:focus {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 4px rgba(59,130,246,.12), 0 4px 12px rgba(59,130,246,.12);
+    border-color: hsl(var(--ring) / .35);
+    box-shadow: 0 0 0 3px var(--focus-ring);
   }
   .input-wrap input.invalid { border-color: var(--danger); }
   .form-hint {
@@ -247,7 +247,7 @@
   .role-check {
     position: absolute; top: 10px; right: 10px;
     width: 22px; height: 22px;
-    background: var(--accent); color: #fff;
+    background: var(--accent); color: var(--primary-foreground);
     border-radius: 50%;
     display: grid; place-items: center;
     font-size: 13px;
@@ -261,8 +261,8 @@
     box-shadow: var(--shadow-md);
   }
   .role-card input:checked + .role-card-content {
-    border-color: var(--accent);
-    background: linear-gradient(135deg, #eff6ff 0%, #faf5ff 100%);
+    border-color: hsl(var(--ring) / .45);
+    background: hsl(var(--ring) / .06);
   }
   .role-card input:checked + .role-card-content .role-check {
     opacity: 1;
@@ -304,15 +304,15 @@
     min-height: 48px;
     font-size: 16px; font-weight: 600;
     color: #fff;
-    background: var(--gradient-primary);
+    background: var(--gradient-primary); background-size: 160%;
     border: none;
     border-radius: var(--radius-md);
     cursor: pointer;
     position: relative;
-    box-shadow: 0 6px 18px rgba(102,126,234,.35);
-    transition: transform var(--t-fast), box-shadow var(--t-fast);
+    box-shadow: 0 6px 18px -4px hsl(var(--ring) / .3);
+    transition: transform var(--t-fast), box-shadow var(--t-fast), background-position .3s;
   }
-  .register-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 26px rgba(102,126,234,.45); }
+  .register-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 26px -6px hsl(var(--ring) / .4); background-position: 100%; }
   .register-btn:active { transform: translateY(0); }
   .register-btn.loading { color: transparent; pointer-events: none; }
   .register-btn.loading::after {
@@ -356,7 +356,7 @@
   <div class="brand-panel" aria-hidden="true">
     <div class="brand-content">
       <div class="logo-row">
-        <div class="logo-badge"><i class="ri-graduation-cap-line"></i></div>
+        <div class="logo-badge"><i class="ri-graduation-cap-line" aria-hidden="true"></i></div>
         <h1>AI 课程助教系统</h1>
       </div>
 
@@ -367,21 +367,21 @@
 
       <div class="feature-list">
         <div class="feature-item">
-          <div class="feature-icon"><i class="ri-robot-2-line"></i></div>
+          <div class="feature-icon"><i class="ri-robot-2-line" aria-hidden="true"></i></div>
           <div class="feature-content">
             <h4>AI 智能答疑</h4>
             <p>24/7 在线解答学习问题，即时响应</p>
           </div>
         </div>
         <div class="feature-item">
-          <div class="feature-icon"><i class="ri-dashboard-3-line"></i></div>
+          <div class="feature-icon"><i class="ri-dashboard-3-line" aria-hidden="true"></i></div>
           <div class="feature-content">
             <h4>学情数据看板</h4>
             <p>可视化掌握度与答题情况，精准教学</p>
           </div>
         </div>
         <div class="feature-item">
-          <div class="feature-icon"><i class="ri-checkbox-circle-line"></i></div>
+          <div class="feature-icon"><i class="ri-checkbox-circle-line" aria-hidden="true"></i></div>
           <div class="feature-content">
             <h4>智能批改 · 出题</h4>
             <p>自动批改作业试题，一键智能出题</p>
@@ -424,7 +424,7 @@
                   <h4>学生</h4>
                   <p>选课学习，完成作业</p>
                 </div>
-                <span class="role-check"><i class="ri-check-line"></i></span>
+                <span class="role-check"><i class="ri-check-line" aria-hidden="true"></i></span>
               </div>
             </label>
             <label class="role-card">
@@ -435,7 +435,7 @@
                   <h4>教师</h4>
                   <p>创建课程，管理学生</p>
                 </div>
-                <span class="role-check"><i class="ri-check-line"></i></span>
+                <span class="role-check"><i class="ri-check-line" aria-hidden="true"></i></span>
               </div>
             </label>
           </div>
@@ -448,7 +448,7 @@
             <input type="text" id="username" name="username" required
                    value="{{ username or '' }}" autocomplete="username" placeholder="字母/数字/下划线，至少 3 位">
           </div>
-          <p class="form-hint" id="hint-username"><i class="ri-error-warning-line"></i><span></span></p>
+          <p class="form-hint" id="hint-username"><i class="ri-error-warning-line" aria-hidden="true"></i><span></span></p>
         </div>
 
         <div class="form-group">
@@ -458,7 +458,7 @@
             <input type="text" id="real_name" name="real_name" required
                    value="{{ real_name or '' }}" autocomplete="name" placeholder="请输入真实姓名">
           </div>
-          <p class="form-hint" id="hint-real_name"><i class="ri-error-warning-line"></i><span></span></p>
+          <p class="form-hint" id="hint-real_name"><i class="ri-error-warning-line" aria-hidden="true"></i><span></span></p>
         </div>
 
         <div class="form-group">
@@ -473,11 +473,11 @@
             <span class="strength-text" id="strengthText">密码强度：</span>
             <span class="strength-char" id="strengthChar" hidden></span>
           </div>
-          <p class="form-hint" id="hint-password"><i class="ri-error-warning-line"></i><span></span></p>
+          <p class="form-hint" id="hint-password"><i class="ri-error-warning-line" aria-hidden="true"></i><span></span></p>
         </div>
 
-        {% if error %}<div class="msg err"><i class="ri-error-warning-line"></i>{{ error }}</div>{% endif %}
-        {% if msg %}<div class="msg ok"><i class="ri-checkbox-circle-line"></i>{{ msg }}</div>{% endif %}
+        {% if error %}<div class="msg err"><i class="ri-error-warning-line" aria-hidden="true"></i>{{ error }}</div>{% endif %}
+        {% if msg %}<div class="msg ok"><i class="ri-checkbox-circle-line" aria-hidden="true"></i>{{ msg }}</div>{% endif %}
 
         <button type="submit" class="register-btn" id="regBtn">注 册</button>
       </form>

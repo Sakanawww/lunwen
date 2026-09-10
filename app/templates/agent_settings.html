@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Agent 配置{% endblock %}
 {% block nav_agents %}class="active"{% endblock %}
+{% block page_title %}Agent 配置{% endblock %}
 
 {% block head %}
 <style>
@@ -18,19 +19,19 @@
   .provider-card .p-key { font-size: 12px; color: var(--text-muted); font-family: var(--font-mono); }
   .provider-card .p-actions { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
   .provider-card .p-actions .btn { flex: 1; min-width: 96px; padding: 8px 10px; font-size: 12.5px; min-height: 38px; }
-  .default-badge { position: absolute; top: -8px; right: 16px; background: var(--accent); color: #fff; font-size: 11px; font-weight: 600; padding: 2px 10px; border-radius: 999px; box-shadow: var(--shadow-sm); }
+  .default-badge { position: absolute; top: -8px; right: 16px; background: var(--accent); color: var(--primary-foreground); font-size: 11px; font-weight: 600; padding: 2px 10px; border-radius: 999px; box-shadow: var(--shadow-sm); }
   .card-foot { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 12px; color: var(--text-muted); }
   .quota-bar { height: 6px; border-radius: 999px; background: var(--bg-hover); overflow: hidden; margin-top: 4px; }
   .quota-bar i { display: block; height: 100%; background: var(--accent); width: 0; }
 
   .test-msg { font-size: 12px; margin-top: 6px; padding: 6px 10px; border-radius: 8px; display: none; }
   .test-msg.show { display: block; }
-  .test-msg.ok { background: rgba(16,185,129,.1); color: #067647; }
-  .test-msg.fail { background: rgba(239,68,68,.08); color: #B42318; }
+  .test-msg.ok { background: var(--success-soft); color: hsl(160 84% 30%); }
+  .test-msg.fail { background: var(--danger-soft); color: hsl(0 72% 45%); }
 
   .add-bar { display: flex; justify-content: flex-end; margin-bottom: 16px; }
   .empty-p { text-align: center; color: var(--text-muted); padding: 50px 20px; }
-  .empty-p i { font-size: 40px; color: #CBD5E1; display: block; margin-bottom: 12px; }
+  .empty-p i { font-size: 40px; color: var(--border-strong); display: block; margin-bottom: 12px; }
   .muted { color: var(--text-muted); font-size: 12px; }
 
   /* ===== 编辑弹窗 ===== */
@@ -53,12 +54,12 @@
     <h1><i class="ri-robot-2-line" aria-hidden="true"></i>Agent 服务商配置</h1>
     <div class="sub">管理 DeepSeek / 通义千问 / ChatGLM / 自定义 OpenAI 兼容服务商</div>
   </div>
-  <button class="btn btn-grad" onclick="openEditor()"><i class="ri-add-line"></i> 添加服务商</button>
+  <button class="btn btn-grad" onclick="openEditor()"><i class="ri-add-line" aria-hidden="true"></i> 添加服务商</button>
 </div>
 
 <div class="card">
   <div class="provider-grid" id="providerGrid">
-    <div class="empty-p"><i class="ri-loader-4-line"></i>加载中…</div>
+    <div class="empty-p"><i class="ri-loader-4-line" aria-hidden="true"></i>加载中…</div>
   </div>
 </div>
 
@@ -90,7 +91,7 @@
       <input type="number" id="pquota" min="0" placeholder="如 1000000">
       <div class="modal-actions">
         <button type="button" class="btn btn-ghost" onclick="closeEditor()">取消</button>
-        <button type="submit" class="btn btn-grad" id="saveBtn"><i class="ri-save-line"></i> 保存</button>
+        <button type="submit" class="btn btn-grad" id="saveBtn"><i class="ri-save-line" aria-hidden="true"></i> 保存</button>
       </div>
     </form>
   </div>

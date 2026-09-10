@@ -1,66 +1,205 @@
 /* ============================================================
-   variables.css —— 课程助教系统设计令牌（浅色清新主题）
-   参考：Linear / Notion / 微信读书 / 教育类产品
+   variables.css —— 课程助教系统设计令牌
+   设计风格：KONTUR 纸感 CRM (暖色纸感 + 极简中性色)
+   参考：KONTUR Ledger CRM - warm paper aesthetic
    ============================================================ */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Instrument+Serif:wght@400&family=Archivo:wght@400;500;600;700&display=swap');
 
 :root {
-  /* ---- 背景色 ---- */
-  --bg-page: #F8FAFC;            /* 页面背景：浅灰蓝 */
-  --bg-card: #FFFFFF;            /* 卡片 / 侧栏背景：纯白 */
-  --bg-sidebar: #FFFFFF;
-  --bg-input: #FFFFFF;           /* 输入框背景：纯白 */
-  --bg-hover: #F1F5F9;           /* 悬停背景：浅灰 */
-  --bg-active: rgba(59, 130, 246, .12);
-
-  /* ---- 文字色 ---- */
-  --text-primary: #1E293B;       /* 主文字：深灰蓝 */
-  --text-secondary: #64748B;     /* 次要文字：中灰 */
-  --text-muted: #94A3B8;         /* 弱化文字：浅灰 */
-
-  /* ---- 强调色 ---- */
-  --accent: #3B82F6;             /* 主色：科技蓝 */
-  --accent-hover: #2563EB;       /* 悬停：深蓝 */
-  --accent-purple: #8B5CF6;
-  --accent-cyan: #06B6D4;
-  --success: #10B981;
-  --warning: #F59E0B;
-  --danger: #EF4444;
-
-  /* ---- 渐变与光晕 ---- */
-  --gradient-primary: linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%);
-  --gradient-glow: radial-gradient(circle, rgba(59, 130, 246, .10) 0%, transparent 70%);
-
-  /* ---- 边框与阴影 ---- */
-  --border: #E2E8F0;             /* 细边框 */
-  --border-strong: #CBD5E1;      /* 中等边框 */
-  --shadow-sm: 0 1px 2px rgba(15, 23, 42, .05);
-  --shadow-md: 0 4px 6px rgba(15, 23, 42, .07);
-  --shadow-lg: 0 10px 20px rgba(15, 23, 42, .10);
-  --shadow-glow: 0 0 20px rgba(59, 130, 246, .20);
-
-  /* ---- 圆角 ---- */
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 14px;
-  --radius-xl: 20px;
-
-  /* ---- 间距 ---- */
-  --sp-xs: .5rem;    /* 8px */
-  --sp-sm: .75rem;   /* 12px */
-  --sp-md: 1rem;     /* 16px */
-  --sp-lg: 1.5rem;   /* 24px */
-  --sp-xl: 2rem;     /* 32px */
-
-  /* ---- 字体 ---- */
-  --font-sans: 'Inter', -apple-system, 'Segoe UI', 'Microsoft YaHei', sans-serif;
-  --font-mono: 'JetBrains Mono', 'Consolas', monospace;
-
-  /* ---- 尺寸 ---- */
-  --nav-h: 60px;
-  --input-h: 44px;
-
-  /* ---- 转场 ---- */
+  /* ============================================================
+     核心色板 - KONTUR 暖色纸感
+     ============================================================ */
+  --ink: 30, 25, 15;              /* #16150F - 主文字 (暖黑) */
+  --paper: 244, 242, 236;         /* #F4F2EC - 页面背景 (暖色纸) */
+  --card: 251, 250, 246;          /* #FBFAF6 - 卡片背景 (比纸略浅) */
+  --line: 218, 213, 200;          /* #DAD5C8 - 边框线 (暖灰) */
+  --green: 30, 92, 66;            /* #1E5C42 - 强调绿 (成功/积极) */
+  --amber: 183, 121, 31;          /* #B7791F - 强调琥珀 (警告/高亮) */
+  
+  /* ============================================================
+     背景色
+     ============================================================ */
+  --background: var(--card);         /* 卡片背景 */
+  --background-secondary: var(--paper); /* 页面背景 */
+  --background-tertiary: 233, 229, 217; /* #E9E5D9 - 分组背景 */
+  
+  /* ============================================================
+     前景色 (文字)
+     ============================================================ */
+  --foreground: var(--ink);          /* 主文字 */
+  --foreground-secondary: 102, 102, 102;  /* #666666 - 次要文字 */
+  --foreground-muted: 161, 161, 170;      /* #a1a1aa - 辅助文字 */
+  
+  /* ============================================================
+     边框色
+     ============================================================ */
+  --border: var(--line);               /* 默认边框 */
+  --border-strong: 208, 202, 188;      /* #D0CABC - 深色边框 */
+  
+  /* ============================================================
+     主色 (暖黑)
+     ============================================================ */
+  --primary: var(--ink);
+  --primary-foreground: var(--paper);
+  
+  /* ============================================================
+     强调色
+     ============================================================ */
+  --accent: var(--background-tertiary);
+  --accent-foreground: var(--ink);
+  
+  /* ============================================================
+     破坏性操作 (保持红色系，但降低饱和度)
+     ============================================================ */
+  --destructive: 220, 38, 38;        /* #dc2626 */
+  --destructive-foreground: 255, 255, 255;
+  
+  /* ============================================================
+     焦点环
+     ============================================================ */
+  --ring: var(--ink);
+  
+  /* ============================================================
+     功能色板
+     ============================================================ */
+  --success: var(--green);
+  --success-bg: 223, 232, 227;       /* #DFE8E3 - 浅绿背景 */
+  --success-text: var(--green);
+  
+  --warning: var(--amber);
+  --warning-bg: 240, 230, 210;       /* #F0E6D2 - 浅琥珀背景 */
+  --warning-text: var(--amber);
+  
+  --danger: 220, 38, 38;
+  --danger-bg: 254, 242, 242;        /* #fef2f2 */
+  --danger-text: 185, 28, 28;        /* #b91c1c */
+  
+  /* ============================================================
+     兼容映射 (旧变量名 → 新 KONTUR)
+     ============================================================ */
+  --bg-page: rgb(var(--background-secondary));
+  --bg-card: rgb(var(--card));
+  --bg-sidebar: rgb(var(--ink));     /* 深色侧边栏 */
+  --bg-input: rgb(var(--card));
+  --bg-hover: rgba(var(--ink), 0.04);
+  --bg-table-head: rgb(var(--background-tertiary));
+  --bg-active: rgb(var(--card));
+  
+  --text-primary: rgb(var(--foreground));
+  --text-secondary: rgb(var(--foreground-secondary));
+  --text-muted: rgb(var(--foreground-muted));
+  
+  --border-soft: rgb(var(--line));
+  --focus-ring: rgba(var(--ring), 0.14);
+  
+  /* ============================================================
+     圆角系统 (保持简洁)
+     ============================================================ */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-full: 9999px;
+  
+  /* ============================================================
+     间距系统 (8px 基准)
+     ============================================================ */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  
+  --page-padding-x: 16px;
+  --page-padding-y: 24px;
+  --section-gap: 24px;
+  --card-gap: 16px;
+  
+  /* ============================================================
+     字体系统 (KONTUR 三字体组合)
+     ============================================================ */
+  --font-serif: 'Instrument Serif', 'Georgia', serif;      /* 装饰标题 */
+  --font-sans: 'Archivo', -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-mono: 'IBM Plex Mono', 'Fira Code', Consolas, monospace;
+  
+  --text-xs: 10px;
+  --text-sm: 11px;
+  --text-base: 13px;
+  --text-lg: 14px;
+  --text-xl: 16px;
+  --text-2xl: 18px;
+  --text-3xl: 20px;
+  --text-page-title: 22px;
+  --text-metric-value: 28px;
+  
+  --font-normal: 400;
+  --font-medium: 500;
+  --font-semibold: 600;
+  --font-bold: 700;
+  
+  --leading-tight: 1.25;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.625;
+  
+  /* ============================================================
+     字间距 (KONTUR 风格：大写字母间距宽松)
+     ============================================================ */
+  --tracking-tight: -0.02em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.08em;
+  --tracking-wider: 0.14em;
+  --tracking-widest: 0.22em;
+  
+  /* ============================================================
+     阴影系统 (极简，几乎无阴影)
+     ============================================================ */
+  --shadow-sm: 0 1px 0 rgb(var(--line) / 0.5);
+  --shadow-md: 0 2px 4px rgb(var(--line) / 0.3);
+  --shadow-lg: 0 4px 8px rgb(var(--line) / 0.2);
+  
+  /* ============================================================
+     转场
+     ============================================================ */
   --t-fast: .15s ease;
-  --t-normal: .3s ease;
+  --t-normal: .25s ease;
+  --t-slow: .4s ease;
+  
+  /* ============================================================
+     尺寸
+     ============================================================ */
+  --nav-h: 56px;
+  --input-h: 36px;
+  --sidebar-w: 224px;                /* 224px = 14rem */
+  
+  /* ============================================================
+     图表色板 (黑白灰中性色)
+     ============================================================ */
+  --chart-line-dark: var(--ink);
+  --chart-line-light: 96, 96, 96;    /* #606060 */
+  --chart-grid: 234, 230, 219;       /* #EAE6DB */
+  --chart-axis: 160, 160, 160;       /* #a0a0a0 */
+  --chart-bar-default: 47, 44, 34;   /* #2F2C22 - 默认柱状 */
+  --chart-bar-highlight: var(--green); /* 高亮柱状 */
+}
+
+/* ============================================================
+   无障碍：统一焦点环（键盘导航）
+   ============================================================ */
+:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgb(var(--card)), 0 0 0 4px var(--focus-ring);
+}
+
+/* 减少动效：关闭非核心动画/过渡 */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

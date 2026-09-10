@@ -4,64 +4,78 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}基于 Agent 的课程助教系统{% endblock %}</title>
-  <!-- Remix Icon 图标库（CDN） -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css">
-  <!-- 设计令牌 + 全局基础样式 -->
   <link rel="stylesheet" href="/static/css/variables.css">
   <link rel="stylesheet" href="/static/css/base.css">
-  <!-- 共享组件 -->
-  <link rel="stylesheet" href="/static/css/components/dropdown.css">
   {% block head %}{% endblock %}
 </head>
 <body>
-  <header class="topbar">
-    <button class="burger" aria-label="打开菜单" onclick="toggleMenu(this)" aria-expanded="false">
-      <i class="ri-menu-line"></i>
-    </button>
-    <div class="brand">
-      <span class="logo" aria-hidden="true"><i class="ri-graduation-cap-line"></i></span>
-      <span>课程助教系统</span>
+  <!-- 左侧侧边栏 -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <span class="brand">课程助教系统</span>
     </div>
-    <nav class="nav" id="mainNav" aria-label="主导航">
+    <nav class="sidebar-nav">
       {% if user %}
-        <span class="user-chip"><i class="ri-user-3-line" aria-hidden="true"></i>{{ user['real_name'] }} · {{ user['role'] }}</span>
-        {% if user['role'] == 'student' %}
-          <a href="/chat" {% block nav_chat %}{% endblock %}><i class="ri-wechat-line"></i>智能答疑</a>
-          <a href="/practice" {% block nav_practice %}{% endblock %}><i class="ri-code-line"></i>答题练习</a>
-        {% endif %}
-        {% if user['role'] in ('teacher','admin') %}
-          <a href="/kb" {% block nav_kb %}{% endblock %}><i class="ri-folder-cloud-line"></i>知识库</a>
-          <a href="/grading" {% block nav_grading %}{% endblock %}><i class="ri-checkbox-circle-line"></i>作业批改</a>
-          <a href="/questions" {% block nav_questions %}{% endblock %}><i class="ri-edit-circle-line"></i>试题生成</a>
-        {% endif %}
-        {% if user['role'] in ('teacher','admin') %}
-          <a href="/dashboard" {% block nav_dashboard %}{% endblock %}><i class="ri-dashboard-3-line"></i>学情看板</a>
-        {% endif %}
-        {% if user %}
-          <a href="/courses" {% block nav_courses %}{% endblock %}><i class="ri-book-open-line"></i>课程管理</a>
-        {% endif %}
-        {% if user['role'] == 'admin' %}
-          <a href="/agents" {% block nav_agents %}{% endblock %}><i class="ri-robot-2-line"></i>Agent 配置</a>
-          <a href="/logs" {% block nav_logs %}{% endblock %}><i class="ri-file-list-3-line"></i>系统日志</a>
-        {% endif %}
-        <a href="/auth/logout" class="logout" aria-label="退出登录"><i class="ri-logout-circle-line"></i>退出</a>
+        <div class="nav-section">
+          {% if user['role'] == 'student' %}
+            <a href="/chat" {% block nav_chat %}{% endblock %}>智能答疑</a>
+            <a href="/practice" {% block nav_practice %}{% endblock %}>答题练习</a>
+          {% endif %}
+          {% if user['role'] in ('teacher','admin') %}
+            <a href="/kb" {% block nav_kb %}{% endblock %}>知识库</a>
+            <a href="/grading" {% block nav_grading %}{% endblock %}>作业批改</a>
+            <a href="/questions" {% block nav_questions %}{% endblock %}>试题生成</a>
+            <a href="/dashboard" {% block nav_dashboard %}{% endblock %}>学情看板</a>
+          {% endif %}
+          <a href="/courses" {% block nav_courses %}{% endblock %}>课程管理</a>
+          {% if user['role'] == 'admin' %}
+            <a href="/agents" {% block nav_agents %}{% endblock %}>Agent 配置</a>
+            <a href="/logs" {% block nav_logs %}{% endblock %}>系统日志</a>
+          {% endif %}
+        </div>
       {% else %}
-        <a href="/"><i class="ri-login-box-line"></i>登录</a>
+        <a href="/" class="login-link">登录</a>
       {% endif %}
     </nav>
-  </header>
+    {% if user %}
+    <div class="sidebar-footer">
+      <div class="user-profile">
+        <div class="user-info">
+          <div class="user-name">{{ user['real_name'] }}</div>
+          <div class="user-role">{{ user['role'] }}</div>
+        </div>
+        <a href="/auth/logout" class="logout-btn" aria-label="退出登录">退出</a>
+      </div>
+    </div>
+    {% endif %}
+  </aside>
 
-  <main class="container">
-    {% block content %}{% endblock %}
-  </main>
+  <!-- 主内容区 -->
+  <div class="main-wrapper">
+    <!-- 顶部 header -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="burger" aria-label="菜单" onclick="toggleSidebar()" aria-expanded="false">
+          <i class="ri-menu-line"></i>
+        </button>
+        <h1 class="page-title">{% block page_title %}{% endblock %}</h1>
+      </div>
+      <div class="topbar-right">
+        {% block topbar_right %}{% endblock %}
+      </div>
+    </header>
+
+    <!-- 页面内容 -->
+    <main class="container">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
 
   <div id="toast" role="status" aria-live="polite"></div>
 
   <script>
-    function toggleMenu(btn) {
-      const nav = document.getElementById('mainNav');
-      const open = nav.classList.toggle('open');
-      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    function toggleSidebar() {
+      document.body.classList.toggle('sidebar-open');
     }
     function toast(msg, type) {
       const box = document.getElementById('toast');

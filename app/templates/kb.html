@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block title %}知识库管理{% endblock %}
 {% block nav_kb %}class="active"{% endblock %}
+{% block page_title %}知识库{% endblock %}
 {% import "components/dropdown.html" as dd %}
 
 {% block head %}
@@ -41,11 +42,11 @@
     transition: var(--t-normal); background: var(--bg-input);
   }
   .upload-area:hover, .upload-area.dragover {
-    border-color: var(--accent); background: rgba(59, 130, 246, .06);
+    border-color: var(--accent); background: var(--accent-soft);
   }
   .upload-area .icon {
     width: 56px; height: 56px; margin: 0 auto 12px; border-radius: 16px;
-    background: linear-gradient(135deg, var(--accent) 0%, #8B5CF6 100%);
+    background: var(--gradient-primary);
     display: grid; place-items: center; color: #fff; font-size: 26px;
     box-shadow: var(--shadow-glow);
   }
@@ -64,13 +65,13 @@
   .doc-list h3 i { color: var(--accent); }
   .doc-stat {
     display: inline-flex; align-items: center; gap: 6px;
-    background: rgba(139,92,246,.10); color: #6D3FC0;
+    background: var(--accent-soft); color: hsl(258 90% 45%);
     padding: 2px 10px; border-radius: 999px; font-size: 11.5px; font-weight: 600;
     margin-left: 10px;
   }
 
   .doc-table thead th {
-    background: #F1F5F9; color: var(--text-secondary); font-weight: 600; font-size: 12.5px;
+    background: var(--bg-table-head); color: var(--text-secondary); font-weight: 600; font-size: 12.5px;
     border-bottom: 2px solid var(--border);
   }
   .doc-table tbody td { padding: 12px 14px; border-bottom: 1px solid var(--border); color: var(--text-secondary); }
@@ -83,26 +84,26 @@
     display: inline-flex; align-items: center; justify-content: center; font-size: 15px;
   }
   .action-btn:hover { background: var(--bg-hover); color: var(--text-primary); border-color: var(--accent); }
-  .action-btn.danger:hover { background: rgba(239,68,68,.10); color: var(--danger); border-color: rgba(239,68,68,.35); }
+  .action-btn.danger:hover { background: var(--danger-soft); color: var(--danger); border-color: rgba(239,68,68,.35); }
   
   /* 空状态增强 */
   .empty-state {
     text-align: center; padding: 40px 0; color: var(--text-muted);
   }
   .empty-state i {
-    font-size: 48px; display: block; margin-bottom: 12px; color: #CBD5E1;
+    font-size: 48px; display: block; margin-bottom: 12px; color: var(--border-strong);
   }
   .empty-state p { margin: 0; font-size: 14px; }
 
   /* 文档预览弹窗 */
   .preview-body { max-height: 62vh; overflow-y: auto; }
   .preview-meta { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12.5px; color: var(--text-muted);
-    padding: 8px 14px; background: #F8FAFC; border-bottom: 1px solid var(--border); border-radius: 8px 8px 0 0; }
+    padding: 8px 14px; background: var(--bg-table-head); border-bottom: 1px solid var(--border); border-radius: 8px 8px 0 0; }
   .preview-chunks { display: flex; flex-direction: column; gap: 12px; padding: 14px; }
   .chunk-item { border: 1px solid var(--border); border-radius: var(--radius-md);
     background: var(--bg-card); overflow: hidden; }
   .chunk-head { display: flex; align-items: center; gap: 8px; padding: 7px 12px;
-    background: #F8FAFC; border-bottom: 1px solid var(--border); font-size: 12px; color: var(--text-secondary); }
+    background: var(--bg-table-head); border-bottom: 1px solid var(--border); font-size: 12px; color: var(--text-secondary); }
   .chunk-head i { color: var(--accent); }
   .chunk-head .chunk-seq { font-weight: 600; color: var(--text-primary); }
   .chunk-content { padding: 12px 14px; font-size: 13.5px; line-height: 1.7; color: var(--text-primary);
@@ -144,7 +145,7 @@
   </div>
 
   <div class="upload-card">
-    <h2><i class="ri-upload-cloud-2-line"></i>上传资料</h2>
+    <h2><i class="ri-upload-cloud-2-line" aria-hidden="true"></i>上传资料</h2>
     <form method="post" action="/kb/upload" enctype="multipart/form-data" id="uploadForm" novalidate>
       <div class="upload-section">
         <div class="course-row">
@@ -159,25 +160,25 @@
 
         <div class="upload-area" id="uploadArea">
           <input type="file" id="fileInput" name="file" accept=".txt,.md,.pdf" required hidden>
-          <div class="icon"><i class="ri-upload-cloud-2-line"></i></div>
+          <div class="icon"><i class="ri-upload-cloud-2-line" aria-hidden="true"></i></div>
           <p>拖拽文件到此处，或 <span class="link" id="chooseLink">点击选择文件</span></p>
           <p class="hint" id="fileName">支持 .txt / .md / .pdf 格式</p>
         </div>
 
         <div class="upload-foot">
           <button type="submit" class="btn btn-grad" id="uploadBtn">
-            <i class="ri-upload-line"></i> 上传并向量化
+            <i class="ri-upload-line" aria-hidden="true"></i> 上传并向量化
           </button>
         </div>
       </div>
     </form>
 
-    {% if msg %}<div class="msg ok"><i class="ri-checkbox-circle-line"></i>{{ msg }}</div>{% endif %}
-    {% if err %}<div class="msg err"><i class="ri-error-warning-line"></i>{{ err }}</div>{% endif %}
+    {% if msg %}<div class="msg ok"><i class="ri-checkbox-circle-line" aria-hidden="true"></i>{{ msg }}</div>{% endif %}
+    {% if err %}<div class="msg err"><i class="ri-error-warning-line" aria-hidden="true"></i>{{ err }}</div>{% endif %}
   </div>
 
   <div class="doc-list">
-    <h3><i class="ri-file-list-3-line"></i>已入库文档 <span class="doc-stat">{{ docs|length }} 篇</span></h3>
+    <h3><i class="ri-file-list-3-line" aria-hidden="true"></i>已入库文档 <span class="doc-stat">{{ docs|length }} 篇</span></h3>
     <div class="table-wrap">
       <table class="doc-table" aria-label="已入库文档列表">
         <thead>
@@ -200,7 +201,7 @@
           {% else %}
           <tr class="empty-row">
             <td colspan="5">
-              <div class="empty-state"><i class="ri-inbox-archive-line"></i><p>暂无文档，请先上传课程资料</p></div>
+              <div class="empty-state"><i class="ri-inbox-archive-line" aria-hidden="true"></i><p>暂无文档，请先上传课程资料</p></div>
             </td>
           </tr>
           {% endfor %}
@@ -222,7 +223,7 @@
     <div class="preview-meta" id="previewMeta"></div>
     <div class="preview-body" id="previewBody"></div>
     <div class="modal-actions">
-      <button type="button" class="btn btn-ghost" data-close><i class="ri-close-line"></i> 关闭</button>
+      <button type="button" class="btn btn-ghost" data-close><i class="ri-close-line" aria-hidden="true"></i> 关闭</button>
     </div>
   </div>
 </div>
@@ -267,7 +268,7 @@
     // 同步当前课程到隐藏 input，再提交
     readCourseSel();
     btn.disabled = true; btn.classList.add('loading');
-    btn.innerHTML = '<i class="ri-loader-4-line spinner"></i> 向量化中…';
+    btn.innerHTML = '<i class="ri-loader-4-line spinner" aria-hidden="true"></i> 向量化中…';
   });
 
   // ===== 文档预览 =====
@@ -289,7 +290,7 @@
   // 挂载到 window，供预览按钮 onclick 调用
   window.previewDoc = function (docId, title) {
     pModal.classList.add('open');
-    pBody.innerHTML = '<div class="preview-loading"><i class="ri-loader-4-line spinner"></i> 加载中…</div>';
+    pBody.innerHTML = '<div class="preview-loading"><i class="ri-loader-4-line spinner" aria-hidden="true"></i> 加载中…</div>';
     pMeta.textContent = '';
     fetch('/api/kb/doc/' + docId + '/preview').then(function (r) {
       if (!r.ok) { throw new Error('HTTP ' + r.status); }
@@ -300,16 +301,16 @@
         : data.chunk_num + ' 个知识块';
       pMeta.innerHTML = meta;
       if (!data.chunks || !data.chunks.length) {
-        pBody.innerHTML = '<div class="preview-empty"><i class="ri-file-search-line"></i><p>该文档没有可预览的内容</p></div>';
+        pBody.innerHTML = '<div class="preview-empty"><i class="ri-file-search-line" aria-hidden="true"></i><p>该文档没有可预览的内容</p></div>';
         return;
       }
       pBody.innerHTML = '<div class="preview-chunks">' + data.chunks.map(function (ch, i) {
         return '<div class="chunk-item">'
-          + '<div class="chunk-head"><i class="ri-file-text-line"></i><span class="chunk-seq">片段 ' + (i + 1) + '</span><span>共 ' + data.chunk_num + ' 段</span></div>'
+          + '<div class="chunk-head"><i class="ri-file-text-line" aria-hidden="true"></i><span class="chunk-seq">片段 ' + (i + 1) + '</span><span>共 ' + data.chunk_num + ' 段</span></div>'
           + '<div class="chunk-content">' + esc(ch.content) + '</div></div>';
       }).join('') + '</div>';
     }).catch(function (err) {
-      pBody.innerHTML = '<div class="preview-empty"><i class="ri-error-warning-line"></i><p>预览加载失败：' + esc(err.message || '未知错误') + '</p></div>';
+      pBody.innerHTML = '<div class="preview-empty"><i class="ri-error-warning-line" aria-hidden="true"></i><p>预览加载失败：' + esc(err.message || '未知错误') + '</p></div>';
     });
   };
 

@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block title %}学情看板{% endblock %}
+{% block page_title %}学情看板{% endblock %}
 {% block nav_dashboard %}class="active"{% endblock %}
 {% import "components/dropdown.html" as dd %}
 
@@ -20,7 +21,7 @@
 }
 .page-title h1 i {
   width: 40px; height: 40px; border-radius: 12px;
-  background: var(--gradient-primary); color: #fff;
+  background: var(--gradient-primary); color: var(--primary-foreground);
   display: grid; place-items: center; font-size: 20px;
   box-shadow: var(--shadow-glow);
 }
@@ -28,13 +29,6 @@
 .page-actions { display: flex; gap: 10px; }
 .page-actions .btn .spinner { display: none; }
 .page-actions .btn.loading .spinner { display: inline-block; }
-.btn-secondary {
-  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
-  min-height: 40px; padding: 0 18px; border-radius: 10px; cursor: pointer;
-  background: var(--bg-card); color: var(--text-secondary); font-size: 13.5px;
-  border: 1px solid var(--border-strong); font-family: inherit; transition: all var(--t-fast);
-}
-.btn-secondary:hover { border-color: var(--accent); color: var(--accent); background: var(--bg-hover); }
 
 /* ---------- 筛选栏 ---------- */
 .filter-bar {
@@ -79,11 +73,11 @@
 .metric-card:nth-child(5){animation-delay:.25s}
 .metric-card:nth-child(6){animation-delay:.3s}
 @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
-.metric-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); border-color: var(--border-strong); }
+.metric-card:hover { border-color: hsl(var(--border) / .1); box-shadow: var(--shadow-md); }
 .metric-card .metric-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 12px; }
 .metric-icon {
   width: 44px; height: 44px; border-radius: 12px;
-  display: grid; place-items: center; font-size: 20px; color: #fff;
+  display: grid; place-items: center; font-size: 20px; color: var(--primary-foreground);
 }
 .metric-bal { color: var(--text-muted); font-size: 13px; cursor: pointer; transition: var(--t-fast); }
 .metric-bal:hover { color: var(--accent); }
@@ -148,9 +142,9 @@
   display: grid; place-items: center; font-size: 13px; font-weight: 600;
   background: var(--bg-hover); color: var(--text-secondary);
 }
-.question-rank.rank-1 { background: linear-gradient(135deg, #F59E0B, #FBBF24); color: #fff; }
-.question-rank.rank-2 { background: linear-gradient(135deg, #94A3B8, #CBD5E1); color: #fff; }
-.question-rank.rank-3 { background: linear-gradient(135deg, #B45309, #D97706); color: #fff; }
+.question-rank.rank-1 { background: linear-gradient(135deg, hsl(38 92% 50%), hsl(38 92% 60%)); color: var(--primary-foreground); }
+.question-rank.rank-2 { background: linear-gradient(135deg, hsl(215 16% 60%), hsl(210 20% 85%)); color: var(--primary-foreground); }
+.question-rank.rank-3 { background: linear-gradient(135deg, hsl(26 90% 45%), hsl(26 90% 55%)); color: var(--primary-foreground); }
 .question-content { flex: 1; min-width: 0; }
 .question-text { font-size: 13.5px; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .question-meta { font-size: 12px; color: var(--text-muted); margin-top: 3px; display: flex; gap: 12px; }
@@ -166,7 +160,7 @@
 .table-container { overflow-x: auto; padding: 0 18px 16px; }
 .data-table { width: 100%; border-collapse: collapse; font-size: 13.5px; min-width: 820px; }
 .data-table thead th {
-  background: #F1F5F9; color: var(--text-secondary); font-weight: 600; font-size: 12.5px;
+  background: var(--bg-table-head); color: var(--text-secondary); font-weight: 600; font-size: 12.5px;
   padding: 11px 14px; text-align: left; border-bottom: 2px solid var(--border); white-space: nowrap;
 }
 .data-table tbody td { padding: 12px 14px; border-bottom: 1px solid var(--border); color: var(--text-secondary); vertical-align: middle; }
@@ -178,23 +172,23 @@
 .student-cell { display: flex; align-items: center; gap: 9px; }
 .student-avatar {
   width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
-  display: grid; place-items: center; font-size: 13px; font-weight: 600; color: #fff;
+  display: grid; place-items: center; font-size: 13px; font-weight: 600; color: var(--primary-foreground);
   background: var(--gradient-primary);
 }
 .type-badge {
   display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px;
   padding: 3px 10px; border-radius: 999px;
 }
-.type-badge.submission { background: rgba(59,130,246,.12); color: #1D5FD0; }
-.type-badge.question { background: rgba(139,92,246,.12); color: #6D3FC0; }
+.type-badge.submission { background: var(--accent-soft); color: hsl(217 91% 36%); }
+.type-badge.question { background: var(--accent-soft); color: hsl(258 90% 45% / .9); }
 .content-cell { max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-primary) !important; }
 .status-badge {
   display: inline-flex; align-items: center; gap: 4px; font-size: 12px;
   padding: 2px 10px; border-radius: 999px; font-weight: 500;
 }
-.status-badge.graded { background: rgba(16,185,129,.12); color: #067647; }
-.status-badge.pending { background: rgba(245,158,11,.12); color: #B86A00; }
-.status-badge.answered { background: rgba(139,92,246,.12); color: #6D3FC0; }
+.status-badge.graded { background: var(--success-soft); color: hsl(160 84% 30%); }
+.status-badge.pending { background: var(--warning-soft); color: hsl(26 90% 40%); }
+.status-badge.answered { background: var(--accent-soft); color: hsl(258 90% 45%); }
 .score-cell { font-weight: 600; color: var(--text-primary); font-variant-numeric: tabular-nums; }
 
 /* 搜索/筛选 */
@@ -221,7 +215,7 @@
   transition: var(--t-fast);
 }
 .page-btn:hover { border-color: var(--accent); color: var(--accent); }
-.page-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+.page-btn.active { background: var(--accent); border-color: var(--accent); color: var(--primary-foreground); font-weight: 600; }
 .page-btn:disabled { opacity: .45; cursor: not-allowed; }
 .page-ellipsis { color: var(--text-muted); padding: 0 2px; }
 .page-size { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--text-muted); }
@@ -229,7 +223,7 @@
   min-height: 30px; border: 1px solid var(--border-strong); border-radius: 8px; padding: 2px 6px; font-size: 12.5px; background: var(--bg-input); color: var(--text-primary);
 }
 .empty-table { text-align: center; color: var(--text-muted); padding: 36px 0; }
-.empty-table i.ri { font-size: 32px; color: #CBD5E1; display: block; margin-bottom: 8px; }
+.empty-table i.ri { font-size: 32px; color: var(--border-strong); display: block; margin-bottom: 8px; }
 
 /* ---------- 选课学生弹窗 ---------- */
 .students-modal { width: 100%; }
@@ -240,16 +234,16 @@
 .students-modal .stu-search i { color: var(--text-muted); font-size: 14px; }
 .students-modal .stu-search input { border: none; background: transparent; outline: none; min-height: 34px; width: 100%; font-size: 13px; color: var(--text-primary); }
 .students-list-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-.students-list-table thead th { background: #F1F5F9; color: var(--text-secondary); font-weight: 600;
+.students-list-table thead th { background: var(--bg-table-head); color: var(--text-secondary); font-weight: 600;
   font-size: 12px; padding: 9px 10px; text-align: left; border-bottom: 2px solid var(--border); white-space: nowrap; }
 .students-list-table tbody td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text-primary); }
 .students-list-table tbody tr:hover { background: var(--bg-hover); }
 .students-list-table .num { text-align: center; font-variant-numeric: tabular-nums; }
 .students-list-table .acc-badge { display: inline-block; min-width: 46px; padding: 2px 8px; border-radius: 999px;
   font-size: 12px; font-weight: 600; text-align: center; }
-.acc-high { background: rgba(16,185,129,.13); color: #067647; }
-.acc-mid { background: rgba(245,158,11,.13); color: #B86A00; }
-.acc-low { background: rgba(239,68,68,.12); color: #B42318; }
+.acc-high { background: var(--success-soft); color: #067647; }
+.acc-mid { background: var(--warning-soft); color: #B86A00; }
+.acc-low { background: var(--danger-soft); color: #B42318; }
 
 /* 模态框基础（与 kb/admin 页一致的复用样式） */
 .stu-modal-mask { position: fixed; inset: 0; background: rgba(15,23,42,.55); z-index: 200;
@@ -286,20 +280,20 @@
     <p class="page-subtitle">实时查看课程学习数据与 AI 助教使用情况</p>
   </div>
   <div class="page-actions">
-    <button class="btn-secondary" id="refreshBtn" title="刷新数据"><i class="ri-refresh-line"></i><span>刷新</span></button>
-    <button class="btn btn-grad" id="exportBtn"><i class="ri-download-line"></i><span>导出报告</span></button>
+    <button class="btn-secondary" id="refreshBtn" title="刷新数据"><i class="ri-refresh-line" aria-hidden="true"></i><span>刷新</span></button>
+    <button class="btn btn-grad" id="exportBtn"><i class="ri-download-line" aria-hidden="true"></i><span>导出报告</span></button>
   </div>
 </div>
 
 <div class="filter-bar">
   <div class="filter-group">
-    <label for="courseSelect"><i class="ri-book-open-line"></i>选择课程</label>
+    <label for="courseSelect"><i class="ri-book-open-line" aria-hidden="true"></i>选择课程</label>
     {% set course_opts = [] %}
     {% for c in courses %}{% set _ = course_opts.append({'value': c.id, 'label': c.name, 'selected': c.id == active_course, 'icon': 'ri-book-open-line'}) %}{% endfor %}
     {{ dd.dropdown_standard('courseSelect', course_opts, {'placeholder': '选择课程…', 'search': true, 'triggerIcon': 'ri-book-open-line'}) }}
   </div>
   <div class="filter-group">
-    <label for="timeRange"><i class="ri-time-line"></i>时间范围</label>
+    <label for="timeRange"><i class="ri-time-line" aria-hidden="true"></i>时间范围</label>
     {{ dd.dropdown_time_range('timeRange', [
         {'value': '7',  'label': '最近 7 天'},
         {'value': '30', 'label': '最近 30 天', 'selected': true},
@@ -309,18 +303,18 @@
 </div>
 
 <div class="metrics-grid" id="metricsGrid">
-  <div class="metric-card" style="cursor:pointer;" title="点击查看选课学生明细" onclick="location.href='/dashboard/students?course_id=' + {{ active_course }}"><div class="metric-top"><div class="metric-icon" style="background:linear-gradient(135deg,#5B7FFF,#8B5CF6)"><i class="ri-group-line"></i></div><i class="ri-arrow-right-up-line metric-bal" aria-hidden="true"></i></div><div class="metric-value" data-metric="total_students">—</div><div class="metric-label">选课人数 <span class="stu-muted" style="font-size:11.5px;">查看学生 →</span></div></div>
-  <div class="metric-card"><div class="metric-top"><div class="metric-icon" style="background:linear-gradient(135deg,#10B981,#34D399)"><i class="ri-file-list-3-line"></i></div></div><div class="metric-value" data-metric="submission_count">—</div><div class="metric-label">作业提交</div></div>
-  <div class="metric-card"><div class="metric-top"><div class="metric-icon" style="background:linear-gradient(135deg,#F59E0B,#FBBF24)"><i class="ri-checkbox-circle-line"></i></div></div><div class="metric-value" data-metric="graded_count">—</div><div class="metric-label">已批改</div></div>
-  <div class="metric-card"><div class="metric-top"><div class="metric-icon" style="background:linear-gradient(135deg,#06B6D4,#22D3EE)"><i class="ri-star-line"></i></div></div><div class="metric-value" data-metric="avg_score">—</div><div class="metric-label">平均分</div></div>
-  <div class="metric-card"><div class="metric-top"><div class="metric-icon" style="background:linear-gradient(135deg,#8B5CF6,#A78BFA)"><i class="ri-wechat-line"></i></div></div><div class="metric-value" data-metric="chat_count">—</div><div class="metric-label">答疑消息</div></div>
-  <div class="metric-card"><div class="metric-top"><div class="metric-icon" style="background:linear-gradient(135deg,#EF4444,#F87171)"><i class="ri-fire-line"></i></div></div><div class="metric-value" data-metric="active_students">—</div><div class="metric-label">活跃学生</div></div>
+  <div class="metric-card" style="cursor:pointer;" title="点击查看选课学生明细" onclick="location.href='/dashboard/students?course_id=' + {{ active_course }}"><div class="metric-top"><div class="metric-icon" style="background:var(--gradient-primary)"><i class="ri-group-line"></i></div><i class="ri-arrow-right-up-line metric-bal" aria-hidden="true"></i></div><div class="metric-value" data-metric="total_students">—</div><div class="metric-label">选课人数 <span class="stu-muted" style="font-size:11.5px;">查看学生 →</span></div></div>
+  <div class="metric-card"><div class="metric-top"><div class="metric-icon" style="background:linear-gradient(135deg,#10B981,#34D399)"><i class="ri-file-list-3-line" aria-hidden="true"></i></div></div><div class="metric-value" data-metric="submission_count">—</div><div class="metric-label">作业提交</div></div>
+  <div class="metric-card"><div class="metric-top"><div class="metric-icon" style="background:linear-gradient(135deg,#F59E0B,#FBBF24)"><i class="ri-checkbox-circle-line" aria-hidden="true"></i></div></div><div class="metric-value" data-metric="graded_count">—</div><div class="metric-label">已批改</div></div>
+  <div class="metric-card"><div class="metric-top"><div class="metric-icon" style="background:linear-gradient(135deg,#06B6D4,#22D3EE)"><i class="ri-star-line" aria-hidden="true"></i></div></div><div class="metric-value" data-metric="avg_score">—</div><div class="metric-label">平均分</div></div>
+  <div class="metric-card"><div class="metric-top"><div class="metric-icon" style="background:linear-gradient(135deg,#8B5CF6,#A78BFA)"><i class="ri-wechat-line" aria-hidden="true"></i></div></div><div class="metric-value" data-metric="chat_count">—</div><div class="metric-label">答疑消息</div></div>
+  <div class="metric-card"><div class="metric-top"><div class="metric-icon" style="background:linear-gradient(135deg,#EF4444,#F87171)"><i class="ri-fire-line" aria-hidden="true"></i></div></div><div class="metric-value" data-metric="active_students">—</div><div class="metric-label">活跃学生</div></div>
 </div>
 
 <div class="charts-grid">
   <div class="chart-card">
     <div class="chart-header">
-      <div class="chart-title"><i class="ri-trend-up-line"></i>学习趋势</div>
+      <div class="chart-title"><i class="ri-trend-up-line" aria-hidden="true"></i>学习趋势</div>
       <div class="chart-tabs" id="trendTabs">
         <button class="chart-tab active" data-days="7">周</button>
         <button class="chart-tab" data-days="30">月</button>
@@ -333,21 +327,21 @@
 
   <div class="chart-card">
     <div class="chart-header">
-      <div class="chart-title"><i class="ri-pie-chart-line"></i>作业完成情况</div>
+      <div class="chart-title"><i class="ri-pie-chart-line" aria-hidden="true"></i>作业完成情况</div>
     </div>
     <div class="chart-container" id="completionChart"></div>
   </div>
 
   <div class="chart-card">
     <div class="chart-header">
-      <div class="chart-title"><i class="ri-book-open-line"></i>知识库使用</div>
+      <div class="chart-title"><i class="ri-book-open-line" aria-hidden="true"></i>知识库使用</div>
     </div>
     <div class="chart-container tall" id="kbChart"></div>
   </div>
 
   <div class="hot-questions-card">
     <div class="card-header">
-      <div class="card-title"><i class="ri-fire-line" style="color:#EF4444"></i>热门问题 TOP 8</div>
+      <div class="card-title"><i class="ri-fire-line" style="color:#EF4444" aria-hidden="true"></i>热门问题 TOP 8</div>
       <a href="/dashboard/hot-questions" class="card-link">查看全部 →</a>
     </div>
     <div class="question-list" id="hotList"></div>
@@ -356,9 +350,9 @@
 
 <div class="activity-table-card">
   <div class="card-header">
-    <div class="card-title"><i class="ri-time-line"></i>最近学习动态</div>
+    <div class="card-title"><i class="ri-time-line" aria-hidden="true"></i>最近学习动态</div>
     <div class="table-toolbar">
-      <div class="search-box"><i class="ri-search-line"></i><input type="text" id="activitySearch" placeholder="搜索学生/内容..."></div>
+      <div class="search-box"><i class="ri-search-line" aria-hidden="true"></i><input type="text" id="activitySearch" placeholder="搜索学生/内容..."></div>
       {{ dd.dropdown_standard('typeFilter', [
             {'value': 'all', 'label': '全部类型', 'selected': true, 'icon': 'ri-filter-3-line'},
             {'value': '作业提交', 'label': '作业提交', 'icon': 'ri-file-list-3-line'},

@@ -26,7 +26,7 @@
   .stu-table-card { background: var(--bg-card); border: 1px solid var(--border);
     border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); overflow: hidden; }
   .stu-table { width: 100%; border-collapse: collapse; font-size: 13.5px; min-width: 760px; }
-  .stu-table thead th { background: #F1F5F9; color: var(--text-secondary); font-weight: 600;
+  .stu-table thead th { background: var(--bg-table-head); color: var(--text-secondary); font-weight: 600;
     font-size: 12.5px; padding: 12px 14px; text-align: left; border-bottom: 2px solid var(--border); white-space: nowrap; }
   .stu-table tbody td { padding: 12px 14px; border-bottom: 1px solid var(--border); color: var(--text-primary); }
   .stu-table tbody tr:hover { background: var(--bg-hover); }
@@ -34,11 +34,11 @@
   .stu-muted { color: var(--text-muted); }
   .acc-badge { display: inline-block; min-width: 48px; padding: 2px 10px; border-radius: 999px;
     font-size: 12px; font-weight: 600; text-align: center; }
-  .acc-high { background: rgba(16,185,129,.13); color: #067647; }
-  .acc-mid { background: rgba(245,158,11,.13); color: #B86A00; }
-  .acc-low { background: rgba(239,68,68,.12); color: #B42318; }
+  .acc-high { background: var(--success-soft); color: #067647; }
+  .acc-mid { background: var(--warning-soft); color: #B86A00; }
+  .acc-low { background: var(--danger-soft); color: #B42318; }
   .stu-empty { text-align: center; color: var(--text-muted); padding: 44px 0; }
-  .stu-empty i.ri { font-size: 38px; color: #CBD5E1; display: block; margin-bottom: 10px; }
+  .stu-empty i.ri { font-size: 38px; color: var(--border-strong); display: block; margin-bottom: 10px; }
   .stu-loading { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 40px 0; color: var(--text-secondary); }
   .fade-up { animation: stuFade .35s ease both; }
   @keyframes stuFade { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
@@ -81,14 +81,14 @@
           <tr><th>学号</th><th>姓名</th><th>班级</th><th class="num">作业提交</th><th class="num">已批改</th><th class="num">答题练习</th><th class="num">正确率</th><th class="num">答疑提问</th></tr>
         </thead>
         <tbody id="stuBody">
-          <tr><td colspan="8" class="stu-loading"><i class="ri-loader-4-line spinner"></i>加载中…</td></tr>
+          <tr><td colspan="8" class="stu-loading"><i class="ri-loader-4-line spinner" aria-hidden="true"></i>加载中…</td></tr>
         </tbody>
       </table>
     </div>
   </div>
 
   <div style="margin-top:18px;">
-    <a href="/dashboard" class="btn btn-ghost"><i class="ri-arrow-left-line"></i> 返回学情看板</a>
+    <a href="/dashboard" class="btn btn-ghost"><i class="ri-arrow-left-line" aria-hidden="true"></i> 返回学情看板</a>
   </div>
 </div>
 {% endblock %}
@@ -118,8 +118,8 @@
     }
     function load() {
       var cid = selectedValue(wrap) || active;
-      if (!cid) { body.innerHTML = '<tr><td colspan="8" class="stu-empty"><i class="ri-book-open-line"></i>暂无课程</td></tr>'; return; }
-      body.innerHTML = '<tr><td colspan="8" class="stu-loading"><i class="ri-loader-4-line spinner"></i>加载中…</td></tr>';
+      if (!cid) { body.innerHTML = '<tr><td colspan="8" class="stu-empty"><i class="ri-book-open-line" aria-hidden="true"></i>暂无课程</td></tr>'; return; }
+      body.innerHTML = '<tr><td colspan="8" class="stu-loading"><i class="ri-loader-4-line spinner" aria-hidden="true"></i>加载中…</td></tr>';
       fetch('/api/dashboard/' + cid + '/students').then(function (r) {
         if (!r.ok) throw new Error('HTTP ' + r.status);
         return r.json();
@@ -140,7 +140,7 @@
         chips[3].textContent = avgAcc;
         render();
       }).catch(function (e) {
-        body.innerHTML = '<tr><td colspan="8" class="stu-empty"><i class="ri-error-warning-line"></i>加载失败：' + esc(e.message) + '</td></tr>';
+        body.innerHTML = '<tr><td colspan="8" class="stu-empty"><i class="ri-error-warning-line" aria-hidden="true"></i>加载失败：' + esc(e.message) + '</td></tr>';
       });
     }
     function render() {
@@ -150,7 +150,7 @@
         return (s.real_name + s.student_no + s.class_name + (s.username || '')).toLowerCase().indexOf(kw) !== -1;
       });
       if (!list.length) {
-        body.innerHTML = '<tr><td colspan="8" class="stu-empty"><i class="ri-user-search-line"></i>暂无匹配学生</td></tr>';
+        body.innerHTML = '<tr><td colspan="8" class="stu-empty"><i class="ri-user-search-line" aria-hidden="true"></i>暂无匹配学生</td></tr>';
         return;
       }
       body.innerHTML = list.map(function (s) {

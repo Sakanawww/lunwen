@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block title %}答题练习{% endblock %}
 {% block nav_practice %}class="active"{% endblock %}
+{% block page_title %}答题练习{% endblock %}
 {% import "components/dropdown.html" as dd %}
 
 {% block head %}
@@ -19,9 +20,9 @@
   .q-body { padding: 20px; max-height: 76vh; overflow-y: auto; }
   .q-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
   .pill { font-size: 11.5px; padding: 2px 10px; border-radius: 999px; font-weight: 600; }
-  .pill.choice { background: rgba(6,182,212,.14); color: #0891B2; }
-  .pill.fill   { background: rgba(139,92,246,.12); color: #6D3FC0; }
-  .pill.short  { background: rgba(245,158,11,.14); color: #B86A00; }
+  .pill.choice { background: hsl(189 94% 90% / .14); color: hsl(189 94% 40%); }
+  .pill.fill   { background: var(--accent-soft); color: hsl(258 90% 45%); }
+  .pill.short  { background: var(--warning-soft); color: hsl(26 90% 40%); }
   .pill.diff   { background: var(--bg-hover); color: var(--text-secondary); }
   .q-stem { font-size: 15px; line-height: 1.8; color: var(--text-primary); white-space: pre-wrap; word-break: break-word; margin-bottom: 16px; }
 
@@ -42,7 +43,7 @@
   textarea.code { width: 100%; min-height: 320px; padding: 12px 14px 12px 54px; border: none; resize: vertical; font-family: var(--font-mono); font-size: 12.5px; line-height: 1.6; background: var(--bg-input); color: var(--text-primary); outline: none; }
 
   .plain-text { width: 100%; min-height: 320px; padding: 12px 14px; border: 1px solid var(--border-strong); border-radius: 12px; resize: vertical; font-size: 13.5px; line-height: 1.7; background: var(--bg-input); color: var(--text-primary); outline: none; }
-  .plain-text:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(59,130,246,.25); }
+  .plain-text:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--focus-ring); }
 
   .answer-actions { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
   .answer-actions .btn { flex: 1; min-width: 120px; }
@@ -50,8 +51,8 @@
   /* 判题结果 */
   .result-box { margin-top: 16px; border-radius: 12px; padding: 14px 16px; border: 1px solid transparent; display: none; }
   .result-box.show { display: flex; align-items: flex-start; gap: 10px; animation: fadeIn .3s ease; }
-  .result-box.correct { background: rgba(16,185,129,.1); border-color: rgba(16,185,129,.3); color: #067647; }
-  .result-box.wrong   { background: rgba(239,68,68,.08); border-color: rgba(239,68,68,.3); color: #B42318; }
+  .result-box.correct { background: var(--success-soft); border-color: hsl(160 84% 30% / .3); color: hsl(160 84% 30%); }
+  .result-box.wrong   { background: var(--danger-soft); border-color: hsl(0 72% 51% / .3); color: hsl(0 72% 45%); }
   .result-box i { font-size: 20px; margin-top: 2px; }
   .result-expect { color: var(--text-secondary); font-size: 12.5px; margin-top: 4px; }
 
@@ -61,7 +62,7 @@
   @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 
   .empty-q { text-align: center; color: var(--text-muted); padding: 60px 20px; }
-  .empty-q i { font-size: 40px; color: #CBD5E1; display: block; margin-bottom: 12px; }
+  .empty-q i { font-size: 40px; color: var(--border-strong); display: block; margin-bottom: 12px; }
 </style>
 {% endblock %}
 
@@ -84,7 +85,7 @@
   <section class="q-panel">
     <div class="panel-head">
       <div>
-        <div class="panel-title"><i class="ri-question-answer-line"></i><span id="qTitle">题目</span></div>
+        <div class="panel-title"><i class="ri-question-answer-line" aria-hidden="true"></i><span id="qTitle">题目</span></div>
         <div class="panel-sub" id="qProgress"></div>
       </div>
       <span class="q-progress" id="qIndexLabel"></span>
@@ -95,8 +96,8 @@
       <div class="opt-list" id="optList"></div>
     </div>
     <div class="nav-controls" style="padding:14px 20px;border-top:1px solid var(--border);">
-      <button class="btn btn-ghost" id="prevQ" onclick="window.__nav(-1)"><i class="ri-arrow-left-line"></i> 上一题</button>
-      <button class="btn" id="nextQ" onclick="window.__nav(1)">下一题 <i class="ri-arrow-right-line"></i></button>
+      <button class="btn btn-ghost" id="prevQ" onclick="window.__nav(-1)"><i class="ri-arrow-left-line" aria-hidden="true"></i> 上一题</button>
+      <button class="btn" id="nextQ" onclick="window.__nav(1)">下一题 <i class="ri-arrow-right-line" aria-hidden="true"></i></button>
     </div>
   </section>
 
@@ -104,7 +105,7 @@
   <section class="a-panel">
     <div class="panel-head">
       <div>
-        <div class="panel-title"><i class="ri-edit-2-line"></i>作答区</div>
+        <div class="panel-title"><i class="ri-edit-2-line" aria-hidden="true"></i>作答区</div>
         <div class="panel-sub">客观题点选选项，主观题输入答案后提交</div>
       </div>
     </div>
@@ -125,8 +126,8 @@
       </div>
 
       <div class="answer-actions">
-        <button class="btn btn-ghost" id="draftBtn" onclick="window.__draft(false)"><i class="ri-save-2-line"></i> 保存草稿</button>
-        <button class="btn btn-grad" id="submitBtn"><i class="ri-send-plane-fill"></i> 提交判题</button>
+        <button class="btn btn-ghost" id="draftBtn" onclick="window.__draft(false)"><i class="ri-save-2-line" aria-hidden="true"></i> 保存草稿</button>
+        <button class="btn btn-grad" id="submitBtn"><i class="ri-send-plane-fill" aria-hidden="true"></i> 提交判题</button>
       </div>
 
       <div class="result-box" id="resultBox">
@@ -146,7 +147,7 @@
 {% else %}
 <div class="card">
   <div class="empty-q">
-    <i class="ri-file-edit-line"></i>
+    <i class="ri-file-edit-line" aria-hidden="true"></i>
     <p>该课程暂无试题。教师可先在「试题生成」页面批量生成。</p>
   </div>
 </div>

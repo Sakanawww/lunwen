@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block title %}管理员控制台{% endblock %}
 {% block nav_dashboard %}class="active"{% endblock %}
+{% block page_title %}dashboard{% endblock %}
 
 {% block head %}
 <style>
@@ -12,10 +13,10 @@
     background:transparent; border:1px solid var(--border); color:var(--text-secondary);
     font-size:13.5px; transition:var(--t-fast); font-family:inherit; min-height:40px;
   }
-  .tab:hover:not(.active) { border-color:var(--accent); color:#fff; background:var(--bg-hover); }
-  .tab.active { background:var(--accent); border-color:var(--accent); color:#fff; box-shadow:var(--shadow-glow); }
-  .tab .count { background:rgba(59,130,246,.12); padding:0 8px; border-radius:999px; font-size:12px; color: #1D5FD0; }
-  .tab.active .count { background:rgba(255,255,255,.22); color: #fff; }
+  .tab:hover:not(.active) { border-color:var(--accent); color:var(--primary-foreground); background:var(--bg-hover); }
+  .tab.active { background:var(--accent); border-color:var(--accent); color:var(--primary-foreground); box-shadow:var(--shadow-glow); }
+  .tab .count { background:var(--accent-soft); padding:0 8px; border-radius:999px; font-size:12px; color: hsl(217 91% 36%); }
+  .tab.active .count { background:hsl(var(--primary) / .22); color: var(--primary-foreground); }
 
   /* ===== 章节标题行（含操作按钮） ===== */
   .section-head { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:14px; }
@@ -28,7 +29,7 @@
   .page-size { margin-left:auto; display:flex; align-items:center; gap:8px; color:var(--text-secondary); font-size:13px; }
   .page-size select { 
     width:auto; min-height:38px; padding: 10px 28px 10px 12px; 
-    background: #FFFFFF; border: 1px solid var(--border-strong); border-radius: var(--radius-md);
+    background: var(--bg-card); border: 1px solid var(--border-strong); border-radius: var(--radius-md);
     appearance: none; -webkit-appearance: none;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/svg%3E");
     background-repeat: no-repeat; background-position: right 10px center; background-size: 18px;
@@ -40,14 +41,14 @@
   .pager { display:flex; align-items:center; gap:12px; justify-content:flex-end; margin-top:12px; font-size:13px; color:var(--text-secondary); }
   .pager button {
     min-height:44px; min-width:44px; padding:0 14px; border-radius:10px;
-    border:1px solid var(--border-strong); background:#FFFFFF; color:var(--text-primary); cursor:pointer; transition:var(--t-fast); font-family:inherit;
+    border:1px solid var(--border-strong); background:var(--bg-card); color:var(--text-primary); cursor:pointer; transition:var(--t-fast); font-family:inherit;
   }
-  .pager button:hover:not(:disabled){ background:var(--accent); border-color:var(--accent); color:#fff; }
+  .pager button:hover:not(:disabled){ background:var(--accent); border-color:var(--accent); color:var(--primary-foreground); }
   .pager button:disabled{ opacity:.4; cursor:not-allowed; }
   .pager .info { font-variant-numeric: tabular-nums; }
 
   /* ===== 空状态（深色） ===== */
-  .empty-state i.ri { color:#CBD5E1; }
+  .empty-state i.ri { color:var(--border-strong); }
 </style>
 {% endblock %}
 
@@ -61,16 +62,16 @@
 
 {# ========== 顶部概览 Tab（跳转锚点）========== #}
 <div class="tabs" role="tablist" aria-label="控制台分区">
-  <a class="tab active" href="#accounts"><i class="ri-user-settings-line"></i>账号管理 <span class="count" id="accountCount">{{ account_count or 0 }}</span></a>
-  <a class="tab" href="#agents"><i class="ri-robot-2-line"></i>Agent 配置 <span class="count">{{ agents|length }}</span></a>
-  <a class="tab" href="#logs"><i class="ri-file-list-3-line"></i>系统日志 <span class="count" id="logCount">{{ logs|length }}</span></a>
+  <a class="tab active" href="#accounts"><i class="ri-user-settings-line" aria-hidden="true"></i>账号管理 <span class="count" id="accountCount">{{ account_count or 0 }}</span></a>
+  <a class="tab" href="#agents"><i class="ri-robot-2-line" aria-hidden="true"></i>Agent 配置 <span class="count">{{ agents|length }}</span></a>
+  <a class="tab" href="#logs"><i class="ri-file-list-3-line" aria-hidden="true"></i>系统日志 <span class="count" id="logCount">{{ logs|length }}</span></a>
 </div>
 
 {# ========== 一、账号管理 ========== #}
 <section class="card" id="accounts">
   <div class="section-head">
-    <h2><i class="ri-user-settings-line"></i>账号管理</h2>
-    <button class="btn btn-grad" id="openAddAccount" style="min-height:38px;padding:8px 16px;font-size:13px;"><i class="ri-user-add-line"></i> 新增账号</button>
+    <h2><i class="ri-user-settings-line" aria-hidden="true"></i>账号管理</h2>
+    <button class="btn btn-grad" id="openAddAccount" style="min-height:38px;padding:8px 16px;font-size:13px;"><i class="ri-user-add-line" aria-hidden="true"></i> 新增账号</button>
   </div>
 
   <div class="log-tools">
@@ -80,7 +81,7 @@
     </div>
     <div class="page-size">
       <label for="acctRole" style="margin:0;">角色</label>
-      <select id="acctRole" aria-label="按角色筛选" style="width:auto;min-height:38px;padding:8px 30px 8px 12px;background:#fff;border:1px solid var(--border-strong);border-radius:8px;">
+      <select id="acctRole" aria-label="按角色筛选" style="width:auto;min-height:38px;padding:8px 30px 8px 12px;background:var(--bg-card);border:1px solid var(--border-strong);border-radius:8px;">
         <option value="">全部</option>
         <option value="admin">管理员</option>
         <option value="teacher">教师</option>
@@ -95,7 +96,7 @@
         <tr><th>ID</th><th>用户名</th><th>姓名</th><th>角色</th><th class="num">注册时间</th><th class="num">操作</th></tr>
       </thead>
       <tbody>
-        <tr class="empty-row"><td colspan="6"><div class="empty-state"><i class="ri-user-settings-line"></i>加载中…</div></td></tr>
+        <tr class="empty-row"><td colspan="6"><div class="empty-state"><i class="ri-user-settings-line" aria-hidden="true"></i>加载中…</div></td></tr>
       </tbody>
     </table>
   </div>
@@ -147,7 +148,7 @@
           </td>
         </tr>
         {% else %}
-        <tr class="empty-row"><td colspan="5"><div class="empty-state"><i class="ri-robot-2-line"></i>暂无 Agent 配置</div></td></tr>
+        <tr class="empty-row"><td colspan="5"><div class="empty-state"><i class="ri-robot-2-line" aria-hidden="true"></i>暂无 Agent 配置</div></td></tr>
         {% endfor %}
       </tbody>
     </table>
@@ -157,7 +158,7 @@
 {# ========== 三、系统日志 ========== #}
 <section class="card" id="logs">
   <div class="section-head">
-    <h2><i class="ri-file-list-3-line"></i>系统日志</h2>
+    <h2><i class="ri-file-list-3-line" aria-hidden="true"></i>系统日志</h2>
   </div>
 
   <div class="log-tools">
@@ -196,7 +197,7 @@
           <td class="num td-mono">{{ l.created_at }}</td>
         </tr>
         {% else %}
-        <tr class="empty-row"><td colspan="5"><div class="empty-state"><i class="ri-file-list-3-line"></i>暂无日志</div></td></tr>
+        <tr class="empty-row"><td colspan="5"><div class="empty-state"><i class="ri-file-list-3-line" aria-hidden="true"></i>暂无日志</div></td></tr>
         {% endfor %}
       </tbody>
     </table>
@@ -240,8 +241,8 @@
         <input type="password" id="acctPassword" autocomplete="new-password" placeholder="至少 6 位">
       </div>
       <div class="modal-actions">
-        <button type="button" class="btn btn-ghost" id="acctCancel2"><i class="ri-close-line"></i> 取消</button>
-        <button type="submit" class="btn btn-grad"><i class="ri-check-line"></i> 保存</button>
+        <button type="button" class="btn btn-ghost" id="acctCancel2"><i class="ri-close-line" aria-hidden="true"></i> 取消</button>
+        <button type="submit" class="btn btn-grad"><i class="ri-check-line" aria-hidden="true"></i> 保存</button>
       </div>
     </form>
   </div>
@@ -344,11 +345,11 @@
       return okRole && okQ;
     });
     if (!acctRows.length) {
-      acctTbody.innerHTML = '<tr class="empty-row"><td colspan="6"><div class="empty-state"><i class="ri-user-settings-line"></i>暂无账号</div></td></tr>';
+      acctTbody.innerHTML = '<tr class="empty-row"><td colspan="6"><div class="empty-state"><i class="ri-user-settings-line" aria-hidden="true"></i>暂无账号</div></td></tr>';
       return;
     }
     if (!vis.length) {
-      acctTbody.innerHTML = '<tr class="empty-row"><td colspan="6"><div class="empty-state"><i class="ri-inbox-line"></i>没有匹配的账号</div></td></tr>';
+      acctTbody.innerHTML = '<tr class="empty-row"><td colspan="6"><div class="empty-state"><i class="ri-inbox-line" aria-hidden="true"></i>没有匹配的账号</div></td></tr>';
       return;
     }
     acctTbody.innerHTML = vis.map(function (r) {
@@ -378,7 +379,7 @@
         document.getElementById('accountCount').textContent = acctRows.length;
         renderAccounts();
       })
-      .catch(function () { acctTbody.innerHTML = '<tr class="empty-row"><td colspan="6"><div class="empty-state"><i class="ri-error-warning-line"></i>账号加载失败</div></td></tr>'; });
+      .catch(function () { acctTbody.innerHTML = '<tr class="empty-row"><td colspan="6"><div class="empty-state"><i class="ri-error-warning-line" aria-hidden="true"></i>账号加载失败</div></td></tr>'; });
   }
   loadAccounts();
   document.getElementById('acctSearch').addEventListener('input', renderAccounts);

@@ -19,16 +19,16 @@
   <div class="dropdown-trigger" tabindex="0" role="button" aria-haspopup="listbox" aria-expanded="false">
     <div class="dropdown-trigger-content">
       {% if config.get('triggerIcon') %}
-        <i class="{{ config.get('triggerIcon') }} dropdown-trigger-icon"></i>
+        <i class="{{ config.get('triggerIcon') }} dropdown-trigger-icon" aria-hidden="true"></i>
       {% endif %}
       <span class="dropdown-trigger-label">{{ (options|selectattr('selected','equalto',true)|first).label if options|selectattr('selected','equalto',true)|first else config.get('placeholder', '请选择…') }}</span>
     </div>
-    <i class="ri-arrow-down-s-line dropdown-arrow"></i>
+    <i class="ri-arrow-down-s-line dropdown-arrow" aria-hidden="true"></i>
   </div>
   <div class="dropdown-panel">
     {% if config.get('search') %}
     <div class="dropdown-search">
-      <i class="ri-search-line"></i>
+      <i class="ri-search-line" aria-hidden="true"></i>
       <input type="text" placeholder="搜索…" aria-label="搜索">
     </div>
     {% endif %}
@@ -36,14 +36,14 @@
       {% for o in options %}
       <li class="dropdown-item {{ 'selected' if o.get('selected') else '' }}"
           data-value="{{ o.value }}" role="option" tabindex="0">
-        {% if o.get('icon') %}<i class="{{ o.icon }} dropdown-item-icon"></i>{% endif %}
+        {% if o.get('icon') %}<i class="{{ o.icon }} dropdown-item-icon" aria-hidden="true"></i>{% endif %}
         <span class="dropdown-item-label">{{ o.label }}</span>
-        <i class="ri-check-line dropdown-item-check"></i>
+        <i class="ri-check-line dropdown-item-check" aria-hidden="true"></i>
       </li>
       {% endfor %}
     </ul>
     {% if config.get('search') %}
-    <div class="dropdown-empty"><i class="ri-inbox-line"></i><span>没有匹配项</span></div>
+    <div class="dropdown-empty"><i class="ri-inbox-line" aria-hidden="true"></i><span>没有匹配项</span></div>
     {% endif %}
   </div>
 </div>
@@ -58,10 +58,10 @@
 <div class="dropdown-container" id="{{ id }}" data-placeholder="{{ config.get('placeholder', '全部数据') }}">
   <div class="dropdown-trigger" tabindex="0" role="button" aria-haspopup="listbox" aria-expanded="false">
     <div class="dropdown-trigger-content">
-      <i class="ri-time-line dropdown-trigger-icon"></i>
+      <i class="ri-time-line dropdown-trigger-icon" aria-hidden="true"></i>
       <span class="dropdown-trigger-label">{{ config.get('label', '最近 30 天') }}</span>
     </div>
-    <i class="ri-arrow-down-s-line dropdown-arrow"></i>
+    <i class="ri-arrow-down-s-line dropdown-arrow" aria-hidden="true"></i>
   </div>
   <div class="dropdown-panel">
     <div class="dropdown-section">
@@ -69,9 +69,9 @@
       <ul class="dropdown-list">
         {% for o in quick_opts %}
         <li class="dropdown-item {{ 'selected' if o.get('selected') else '' }}" data-value="{{ o.value }}">
-          <i class="{{ o.get('icon', 'ri-calendar-line') }} dropdown-item-icon"></i>
+          <i class="{{ o.get('icon', 'ri-calendar-line') }} dropdown-item-icon" aria-hidden="true"></i>
           <span class="dropdown-item-label">{{ o.label }}</span>
-          <i class="ri-check-line dropdown-item-check"></i>
+          <i class="ri-check-line dropdown-item-check" aria-hidden="true"></i>
         </li>
         {% endfor %}
       </ul>
@@ -82,9 +82,9 @@
       <div class="dropdown-section-title">全部数据</div>
       <ul class="dropdown-list">
         <li class="dropdown-item {{ 'selected' if config.get('allSelected') else '' }}" data-value="all">
-          <i class="ri-infinity-line dropdown-item-icon"></i>
+          <i class="ri-infinity-line dropdown-item-icon" aria-hidden="true"></i>
           <span class="dropdown-item-label">全部</span>
-          <i class="ri-check-line dropdown-item-check"></i>
+          <i class="ri-check-line dropdown-item-check" aria-hidden="true"></i>
         </li>
       </ul>
     </div>
@@ -114,11 +114,11 @@
 <div class="dropdown-container dropdown-multi" id="{{ id }}" data-placeholder="{{ config.get('placeholder', '全部') }}">
   <div class="dropdown-trigger" tabindex="0" role="button" aria-haspopup="listbox" aria-expanded="false">
     <div class="dropdown-trigger-content">
-      {% if config.get('triggerIcon') %}<i class="{{ config.get('triggerIcon') }} dropdown-trigger-icon"></i>{% endif %}
+      {% if config.get('triggerIcon') %}<i class="{{ config.get('triggerIcon') }} dropdown-trigger-icon" aria-hidden="true"></i>{% endif %}
       <span class="dropdown-trigger-label">{{ config.get('label', '全部') }}</span>
       <span class="dropdown-selected-count" style="display:none;"></span>
     </div>
-    <i class="ri-arrow-down-s-line dropdown-arrow"></i>
+    <i class="ri-arrow-down-s-line dropdown-arrow" aria-hidden="true"></i>
   </div>
   <div class="dropdown-panel">
     <div class="dropdown-select-all">
@@ -130,9 +130,9 @@
       {% for o in options %}
       <li class="dropdown-item {{ 'selected' if o.get('selected', true) else '' }}" data-value="{{ o.value }}">
         <input type="checkbox" style="display:none;" {{ 'checked' if o.get('selected', true) else '' }}>
-        {% if o.get('icon') %}<i class="{{ o.icon }} dropdown-item-icon"></i>{% endif %}
+        {% if o.get('icon') %}<i class="{{ o.icon }} dropdown-item-icon" aria-hidden="true"></i>{% endif %}
         <span class="dropdown-item-label">{{ o.label }}</span>
-        <i class="ri-check-line dropdown-item-check"></i>
+        <i class="ri-check-line dropdown-item-check" aria-hidden="true"></i>
       </li>
       {% endfor %}
     </ul>

@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block title %}智能答疑{% endblock %}
 {% block nav_chat %}class="active"{% endblock %}
+{% block page_title %}智能答疑{% endblock %}
 
 {% block head %}
 <style>
@@ -38,12 +39,12 @@
   display: grid; place-items: center; opacity: 0; transition: var(--t-fast);
 }
 .session-item-row:hover .session-del { opacity: 1; }
-.session-del:hover { color: var(--danger); background: rgba(239,68,68,.1); }
+.session-del:hover { color: var(--danger); background: var(--danger-soft); }
 .session-item-row .session-item { padding-right: 42px; }
 .new-chat-btn {
   width: 100%; height: 40px; border: none; border-radius: 10px;
   background: var(--gradient-primary); background-size: 160%;
-  color: #fff; font-size: 13.5px; font-weight: 500; cursor: pointer;
+  color: var(--primary-foreground); font-size: 13.5px; font-weight: 500; cursor: pointer;
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
   font-family: inherit; transition: all var(--t-fast);
 }
@@ -69,7 +70,7 @@
   display: grid; place-items: center; font-size: 16px;
   background: var(--bg-hover); color: var(--accent);
 }
-.session-item.active .s-icon { background: var(--accent); color: #fff; }
+.session-item.active .s-icon { background: var(--accent); color: var(--primary-foreground); }
 .session-item .s-content { flex: 1; min-width: 0; }
 .session-item .s-title {
   font-size: 13px; color: var(--text-primary); display: block;
@@ -96,7 +97,7 @@
 .chat-title .chat-title-icon {
   width: 32px; height: 32px; border-radius: 9px;
   background: var(--gradient-primary); display: grid; place-items: center;
-  color: #fff; font-size: 16px;
+  color: var(--primary-foreground); font-size: 16px;
 }
 .chat-toolbar {
   padding: 10px 24px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; min-height: 44px;
@@ -121,7 +122,7 @@
   width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0;
   display: grid; place-items: center; font-size: 18px;
 }
-.msg-row.ai .avatar { background: var(--gradient-primary); color: #fff; }
+.msg-row.ai .avatar { background: var(--gradient-primary); color: var(--primary-foreground); }
 .msg-row.user .avatar { background: var(--bg-hover); color: var(--text-secondary); }
 
 .bubble {
@@ -130,7 +131,7 @@
   word-break: break-word; overflow-wrap: break-word; white-space: normal;
 }
 .msg-row.user .bubble {
-  background: var(--gradient-primary); background-size: 160%; color: #fff;
+  background: var(--gradient-primary); background-size: 160%; color: var(--primary-foreground);
   border-radius: 16px 16px 4px 16px; box-shadow: var(--shadow-md);
 }
 .msg-row.ai .bubble {
@@ -147,12 +148,12 @@
 .bubble strong { font-weight: 600; }
 .bubble code {
   font-family: var(--font-mono); font-size: .875em;
-  background: var(--bg-hover); color: #D13B3B;
+  background: var(--bg-hover); color: var(--danger);
   padding: 2px 6px; border-radius: 4px; white-space: pre-wrap; word-break: break-word;
 }
-.msg-row.user .bubble code { background: rgba(255,255,255,.22); color: #fff; }
+.msg-row.user .bubble code { background: hsl(var(--primary-foreground) / .22); color: var(--primary-foreground); }
 .bubble pre {
-  background: #0F172A; color: #E2E8F0;
+  background: hsl(222 84% 4% / .95); color: hsl(210 40% 98%);
   padding: 14px; border-radius: 10px; overflow-x: auto;
   margin: 10px 0; font-family: var(--font-mono); font-size: 12.5px;
 }
@@ -197,7 +198,7 @@
 .welcome .w-logo {
   width: 80px; height: 80px; margin: 0 auto 20px; border-radius: 22px;
   background: var(--gradient-primary); display: grid; place-items: center;
-  color: #fff; font-size: 38px; box-shadow: var(--shadow-glow);
+  color: var(--primary-foreground); font-size: 38px; box-shadow: var(--shadow-glow);
   animation: float 3s ease-in-out infinite;
 }
 @keyframes float { 0%,100% { transform: translateY(0);} 50% { transform: translateY(-8px);} }
@@ -219,7 +220,7 @@
   width: 30px; height: 30px; border-radius: 8px; flex-shrink: 0;
   display: grid; place-items: center; background: var(--bg-active); color: var(--accent);
 }
-.suggest-card:hover .q-icon { background: var(--accent); color: #fff; }
+.suggest-card:hover .q-icon { background: var(--accent); color: var(--primary-foreground); }
 
 /* 输入区 */
 .input-area { background: var(--bg-sidebar); border-top: 1px solid var(--border); padding: 16px 24px; }
@@ -243,7 +244,7 @@
   display: grid; place-items: center; font-size: 18px; transition: var(--t-fast);
 }
 .input-btn:hover { background: var(--bg-active); color: var(--accent); }
-.input-btn.send { background: var(--gradient-primary); color: #fff; font-size: 19px; }
+.input-btn.send { background: var(--gradient-primary); color: var(--primary-foreground); font-size: 19px; }
 .input-btn.send:hover:not(:disabled) { transform: scale(1.06); box-shadow: var(--shadow-glow); }
 .input-btn.send:disabled { opacity: .5; cursor: not-allowed; transform: none; }
 .input-hint { font-size: 11.5px; color: var(--text-muted); margin-top: 8px; text-align: center; }
@@ -276,7 +277,7 @@
 }
 .src-frags li:hover { color: var(--accent); background: var(--bg-sidebar); }
 .src-empty { color: var(--text-muted); text-align: center; padding: 40px 10px; font-size: 12.5px; }
-.src-empty i { font-size: 30px; display: block; margin-bottom: 10px; color: #CBD5E1; }
+.src-empty i { font-size: 30px; display: block; margin-bottom: 10px; color: var(--border-strong); }
 
 /* 响应式 */
 @media (max-width: 1024px) { .src-sidebar { display: none; } }
@@ -295,12 +296,12 @@
   <aside class="session-sidebar">
     <div class="sidebar-pad">
       <button class="new-chat-btn" id="newChatBtn">
-        <i class="ri-add-line"></i> 新建对话
+        <i class="ri-add-line" aria-hidden="true"></i> 新建对话
       </button>
     </div>
     <div class="session-list" id="sessionList"></div>
     <div class="sidebar-pad rb-link">
-      <a href="/chat/deleted" class="rb-link-btn"><i class="ri-delete-bin-line"></i> 回收站</a>
+      <a href="/chat/deleted" class="rb-link-btn"><i class="ri-delete-bin-line" aria-hidden="true"></i> 回收站</a>
     </div>
   </aside>
 
@@ -308,7 +309,7 @@
   <main class="chat-main">
     <header class="chat-header">
       <div class="chat-title">
-        <span class="chat-title-icon"><i class="ri-robot-2-fill"></i></span>
+        <span class="chat-title-icon"><i class="ri-robot-2-fill" aria-hidden="true"></i></span>
         <span>智能答疑助手</span>
       </div>
       <span class="chat-header-tag">基于 RAG 知识库的智能答疑</span>
@@ -324,8 +325,8 @@
       <div class="input-shell">
         <div class="input-box">
           <textarea id="question" rows="1" placeholder="输入你的问题，Enter 发送，Shift+Enter 换行..."></textarea>
-          <button class="input-btn" id="attachBtn" title="上传附件"><i class="ri-attachment-2"></i></button>
-          <button class="input-btn send" id="sendBtn" title="发送"><i class="ri-send-plane-fill"></i></button>
+          <button class="input-btn" id="attachBtn" title="上传附件" aria-label="上传附件"><i class="ri-attachment-2" aria-hidden="true"></i></button>
+          <button class="input-btn send" id="sendBtn" title="发送" aria-label="发送"><i class="ri-send-plane-fill" aria-hidden="true"></i></button>
         </div>
         <div class="input-hint"><kbd>Enter</kbd> 发送 · <kbd>Shift+Enter</kbd> 换行 · 回答将引用课程知识库来源</div>
       </div>
@@ -334,9 +335,9 @@
 
   <!-- 右侧：引用来源 -->
   <aside class="src-sidebar">
-    <h3 class="src-title"><i class="ri-book-open-line"></i> 引用来源</h3>
+    <h3 class="src-title"><i class="ri-book-open-line" aria-hidden="true"></i> 引用来源</h3>
     <div class="src-body" id="srcBody">
-      <div class="src-empty"><i class="ri-book-open-line"></i>未引用知识库</div>
+      <div class="src-empty"><i class="ri-book-open-line" aria-hidden="true"></i>未引用知识库</div>
     </div>
   </aside>
 
