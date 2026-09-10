@@ -79,10 +79,26 @@
                 type="email"
                 class="form-input"
                 placeholder="请输入邮箱"
-                required
                 autocomplete="email"
                 :class="{ 'has-error': errorMessage }"
               />
+            </div>
+          </div>
+
+          <!-- 角色 -->
+          <div class="form-group">
+            <label class="form-label">
+              <span class="label-text">账号角色</span>
+            </label>
+            <div class="role-group">
+              <label class="role-option">
+                <input type="radio" value="student" v-model="form.role" />
+                <span class="role-option-text"><i class="ri-graduation-cap-line"></i> 学生</span>
+              </label>
+              <label class="role-option">
+                <input type="radio" value="teacher" v-model="form.role" />
+                <span class="role-option-text"><i class="ri-presentation-line"></i> 教师</span>
+              </label>
             </div>
           </div>
 
@@ -168,6 +184,7 @@ const form = reactive({
   username: '',
   real_name: '',
   email: '',
+  role: 'student' as 'student' | 'teacher',
   password: '',
   confirmPassword: '',
 })
@@ -186,12 +203,12 @@ const handleRegister = async () => {
   errorMessage.value = ''
 
   try {
-    await authStore.register(
-      form.username,
-      form.password,
-      form.real_name,
-      form.email
-    )
+    await authStore.register({
+      username: form.username,
+      real_name: form.real_name,
+      password: form.password,
+      role: form.role,
+    })
     router.push('/login')
   } catch (error: any) {
     errorMessage.value = error.message || '注册失败，请稍后重试'
@@ -362,6 +379,61 @@ const handleRegister = async () => {
 
 .form-input.has-error:focus {
   box-shadow: 0 0 0 2px rgb(var(--card)), 0 0 0 4px rgba(var(--destructive), 0.15);
+}
+
+/* ========== 角色选择 ========== */
+.role-group {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.role-option {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 44px;
+  border: 1px solid rgb(var(--line));
+  border-radius: var(--radius-md);
+  background: rgb(var(--card));
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .role-option-text {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--text-primary);
+    font-size: var(--text-base);
+
+    i {
+      color: var(--text-muted);
+    }
+  }
+
+  &:hover {
+    border-color: rgb(var(--ink));
+  }
+
+  /* 选中状态（原生 radio:checked 相邻标签） */
+  &:has(input[type="radio"]:checked) {
+    border-color: rgb(var(--ink));
+    background: rgba(var(--ink), 0.06);
+
+    .role-option-text {
+      font-weight: var(--font-medium);
+
+      i {
+        color: rgb(var(--ink));
+      }
+    }
+  }
 }
 
 /* ========== 错误提示 ========== */

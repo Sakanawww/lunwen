@@ -111,14 +111,20 @@ export const useAuthStore = defineStore('auth', () => {
   async function register(data: RegisterData) {
     isLoading.value = true
     error.value = null
-    
+
     try {
-      // TODO: 调用实际注册 API
-      // await api.post('/api/auth/register', data)
-      
-      // 模拟注册
-      await new Promise(resolve => setTimeout(resolve, 800))
-      
+      const response = await fetch('/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(data),
+      })
+
+      if (!response.ok) {
+        const err = await response.json()
+        throw new Error(err.detail || '注册失败')
+      }
+
       return { success: true }
     } catch (err: any) {
       error.value = err.message || '注册失败'
