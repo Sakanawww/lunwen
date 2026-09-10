@@ -45,6 +45,9 @@ export const useCourseStore = defineStore('course', () => {
       const response = await fetch('/api/courses', {
         method: 'GET',
         credentials: 'include',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
+        },
       })
       
       if (!response.ok) {

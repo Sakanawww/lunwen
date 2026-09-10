@@ -203,6 +203,7 @@ const handleSend = async () => {
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',  // 后端能处理，虽然会触发预检但现代浏览器会重试
+        'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
       },
       body: JSON.stringify({
         question: content,
