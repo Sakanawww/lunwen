@@ -447,9 +447,18 @@ const exportChat = () => {
 
   const blob = new Blob([content], { type: 'text/plain;charset=utf-8' })
   const url = URL.createObjectURL(blob)
+  const now = new Date()
+  const datePart = [
+    now.getFullYear(),
+    String(now.getMonth() + 1).padStart(2, '0'),
+    String(now.getDate()).padStart(2, '0'),
+  ].join('-')
+  const titlePart = (currentSessionId.value
+    ? (sessions.value.find(s => s.id === currentSessionId.value)?.title || '对话')
+    : '新对话')
   const a = document.createElement('a')
   a.href = url
-  a.download = `对话记录_${new Date().toLocaleDateString()}.txt`
+  a.download = `对话记录_${titlePart}_${datePart}.txt`
   a.click()
   URL.revokeObjectURL(url)
 }
