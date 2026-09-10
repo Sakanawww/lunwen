@@ -7,10 +7,16 @@
 ## 技术栈
 
 - 后端：Python 3.11 · FastAPI · SQLAlchemy · MySQL
-- 智能体：LangChain + **LangGraph**（多 Agent 有状态编排）+ Function Calling
+- 智能体：LangChain + ReAct + **LangGraph**（多 Agent 有状态编排）+ Function Calling
 - 检索：FAISS 向量库 + Qwen Embedding（RAG 溯源）
 - 前端：**Vue 3 + Vite + TypeScript + Pinia + Vue Router**（shadcn/ui 风格设计）
-- 会话：内存态（Redis 可选降级）
+- 会话：**Redis Session**（不可用时自动降级为内存态）
+
+## 功能特点
+
+- **多课程数据隔离**：课程、时间范围下拉变化后，看板/试题库自动按选中课程与时间重新拉取并刷新数据。
+- **对话记录管理**：答疑会话支持删除（软删除进回收站）、从回收站恢复、彻底删除与批量操作。
+- **AI 出题自动入库**：出题 Agent 生成的题目写入题库，试题库页面按课程实时展示真实数据。
 
 ## 运行前准备
 
@@ -49,9 +55,7 @@
    mysql -uroot -p < database/seed.sql
    ```
 
-   > 种子账号：`admin` / `teacher` / `student`，密码均为 `123456`。
-
-> 种子账号：`admin` / `teacher` / `student`，密码均为 `123456`。
+   > 种子账号：`admin` / `teacher` / `student`,密码均为 `123456`。
 
 5. **启动服务（推荐使用统一启动脚本）**：
 
@@ -73,24 +77,24 @@
 
 | 角色 | 入口 | 能力 |
 | --- | --- | --- |
-| 学生 | /chat | SSE 流式答疑（带引用溯源）、自测 |
-| 教师 | /kb 、/grading、/questions | 上传知识库、AI 批改、AI 出题、学情看板 |
-| 管理员 | /dashboard | Agent 配置与系统概览 |
+| 学生 | /chat、/practice | SSE 流式答疑（带引用溯源）、自测练习 |
+| 教师 | /kb、/grading、/questions | 上传知识库、AI 批改、AI 出题、学情看板 |
+| 管理员 | /dashboard、/admin | Agent 配置、系统概览与管理 |
 
 ## 目录结构
 
 ```
 app/
-  agents/        # 答疑/批改/出题三个 Agent + LangGraph 编排图 graph.py
+  agents/        # 答疑/批改/出题三个 Agent + 多 Agent 编排 + LangGraph 图 graph.py
   kb/            # 知识库切分、向量化、FAISS 检索、溯源
-  api/           # FastAPI 接口（认证/答疑/知识库/批改/出题/看板）
+  api/           # FastAPI 接口（认证/答疑/知识库/批改/出题/看板/会话删除）
   models/        # SQLAlchemy ORM
   schemas/       # Pydantic 请求/响应模型
-  core/          # 配置、数据库、会话、依赖
+  core/          # 配置、数据库、会话（Redis）、依赖
   services/      # 大模型封装
 frontend/        # Vue3 前端（src/views、src/stores、src/router 等）
-database/        # schema.sql / seed.sql
-scripts/         # 统一启动脚本 start.py、zh_tw/zh_cn 等
+database/        # schema.sql / seed.sql / migrations
+scripts/         # 统一启动脚本 start.py、start.bat、start.sh
 data/seed_kb/    # 演示用《数据结构》讲义
 tests/           # 单元测试（pytest）
 data/uploads/    # 运行时知识库上传文件（勿提交）
