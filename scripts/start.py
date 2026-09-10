@@ -44,9 +44,9 @@ PROCESSES = {
     },
     "frontend": {
         "name": "前端服务 (Vite)",
-        "command": [
-            "npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5173"
-        ],
+        "command": ["npm.cmd", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5173"]
+        if sys.platform == "win32"
+        else ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5173"],
         "cwd": str(BASE_DIR / "frontend"),
         "env": {**os.environ},
     }
@@ -85,20 +85,41 @@ def get_pid(name: str) -> int | None:
 
 def is_process_running(pid: int) -> bool:
     """检查进程是否正在运行。"""
+    if not pid:
+        return False
+    
     try:
         if sys.platform == "win32":
-            # Windows: 使用 tasklist
+            # Windows: 使用 tasklist 检查进程
+            # 注意：npm run dev 会启动 node 子进程，需要检查进程树
             result = subprocess.run(
                 ["tasklist", "/FI", f"PID eq {pid}"],
                 capture_output=True,
-                text=True
+                text=True,
+                encoding="gbk",
+                errors="replace"
             )
-            return str(pid) in result.stdout
+            if result.stdout and str(pid) in result.stdout:
+                return True
+            
+            # 如果直接 PID 找不到，检查是否有 node 进程在运行（Vite 的子进程）
+            result = subprocess.run(
+                ["tasklist", "/FI", "IMAGENAME eq node.exe", "/FO", "CSV"],
+                capture_output=True,
+                text=True,
+                encoding="gbk",
+                errors="replace"
+            )
+            # 只要有 node 进程就认为前端在运行（简化检查）
+            return result.returncode == 0 and "node.exe" in result.stdout
         else:
             # Linux/Mac: 使用 kill 0 检查
-            os.kill(pid, 0)
-            return True
-    except (OSError, subprocess.SubprocessError):
+            try:
+                os.kill(pid, 0)
+                return True
+            except OSError:
+                return False
+    except Exception:
         return False
 
 
@@ -150,30 +171,41 @@ def start_process(name: str, daemon: bool = False):
     # 启动进程
     print(f"  启动 {config['name']}...")
     
-    if sys.platform == "win32":
-        # Windows: 使用 CREATE_NEW_PROCESS_GROUP
-        startupinfo = subprocess.STARTUPINFO()
-        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-        
-        process = subprocess.Popen(
-            config["command"],
-            cwd=config["cwd"],
-            env=config["env"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            startupinfo=startupinfo,
-            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
-        )
-    else:
-        # Linux/Mac: 使用 preexec_fn 创建新进程组
-        process = subprocess.Popen(
-            config["command"],
-            cwd=config["cwd"],
-            env=config["env"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            preexec_fn=os.setsid if not daemon else None,
-        )
+    try:
+        if sys.platform == "win32":
+            # Windows: 使用 CREATE_NEW_PROCESS_GROUP
+            startupinfo = subprocess.STARTUPINFO()
+            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            
+            process = subprocess.Popen(
+                config["command"],
+                cwd=config["cwd"],
+                env=config["env"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                startupinfo=startupinfo,
+                creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
+                # Windows 上使用 universal_newlines 和 errors 处理编码
+                universal_newlines=True,
+                errors="replace",
+            )
+        else:
+            # Linux/Mac: 使用 preexec_fn 创建新进程组
+            process = subprocess.Popen(
+                config["command"],
+                cwd=config["cwd"],
+                env=config["env"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                preexec_fn=os.setsid if not daemon else None,
+                # Linux 上使用 errors 处理编码
+                errors="replace",
+            )
+    except FileNotFoundError as e:
+        log_fh.close()
+        # 查找具体找不到的命令
+        cmd_name = config["command"][0] if config["command"] else "unknown"
+        raise RuntimeError(f"找不到命令：{cmd_name}，请确保已安装") from e
     
     # 写入 PID 文件
     pid_file.write_text(str(process.pid))
@@ -190,10 +222,12 @@ def start_process(name: str, daemon: bool = False):
                     break
                 if line:
                     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                    log_fh.write(f"[{timestamp}] {line.decode('utf-8', errors='replace')}")
+                    # universal_newlines=True 时 line 已经是字符串，不需要 decode
+                    log_text = line if isinstance(line, str) else line.decode('utf-8', errors='replace')
+                    log_fh.write(f"[{timestamp}] {log_text}")
                     log_fh.flush()
                     # 同时输出到控制台（可选）
-                    # print(f"[{name}] {line.decode('utf-8', errors='replace')}", end="")
+                    # print(f"[{name}] {log_text}", end="")
         except Exception as e:
             print(f"  日志收集错误：{e}")
         finally:
@@ -213,15 +247,25 @@ def start_all(daemon: bool = False):
     
     ensure_dirs()
     
-    # 启动后端
-    backend_pid = start_process("backend", daemon)
+    # 检查后端是否已在运行
+    backend_pid = get_pid("backend")
+    if backend_pid and is_process_running(backend_pid):
+        print(f"  后端服务已在运行 (PID: {backend_pid})")
+    else:
+        # 启动后端
+        backend_pid = start_process("backend", daemon)
     
     # 等待后端启动
     print("  等待后端服务就绪...")
     time.sleep(3)
     
-    # 启动前端
-    frontend_pid = start_process("frontend", daemon)
+    # 检查前端是否已在运行
+    frontend_pid = get_pid("frontend")
+    if frontend_pid and is_process_running(frontend_pid):
+        print(f"  前端服务已在运行 (PID: {frontend_pid})")
+    else:
+        # 启动前端
+        frontend_pid = start_process("frontend", daemon)
     
     print("=" * 60)
     print("✓ 所有服务已启动")
