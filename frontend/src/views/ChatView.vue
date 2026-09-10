@@ -81,6 +81,10 @@
           </div>
           <div class="message-content">
             <div class="message-bubble">
+              <div v-if="message.attachment && message.role === 'user'" class="msg-attachment">
+                <i class="ri-file-line"></i>
+                <span class="msg-attachment-name">{{ message.attachment }}</span>
+              </div>
               <p class="message-text">{{ message.content }}</p>
             </div>
             <!-- 溯源信息 -->
@@ -117,6 +121,14 @@
       <!-- 输入区域 -->
       <div class="input-container">
         <div class="input-wrapper">
+          <div v-if="pendingAttachment" class="attachment-preview">
+            <i class="ri-file-line"></i>
+            <span class="attachment-preview-name">{{ pendingAttachment.name }}</span>
+            <button class="attachment-remove" title="移除附件" @click="pendingAttachment = null">
+              <i class="ri-close-line"></i>
+            </button>
+          </div>
+          <div class="input-row">
           <textarea
             ref="inputRef"
             v-model="inputMessage"
@@ -127,6 +139,10 @@
             @input="autoResize"
             rows="1"
           ></textarea>
+          <label class="btn-attach" title="上传附件" :class="{ disabled: isLoading }">
+            <input type="file" class="attach-file-input" accept=".txt,.md,.markdown,.pdf,.docx,.py,.png,.jpg,.jpeg" @change="onFileSelected" />
+            <i class="ri-attachment-2"></i>
+          </label>
           <button
             class="btn-send"
             :disabled="!inputMessage.trim() || isLoading"
@@ -135,6 +151,7 @@
             <i class="ri-send-plane-fill"></i>
             <span>发送</span>
           </button>
+          </div>
         </div>
       </div>
       </div>
@@ -150,6 +167,13 @@ interface Message {
   role: 'user' | 'assistant'
   content: string
   sources?: string[]
+  attachment?: string
+}
+
+interface AttachmentInfo {
+  name: string
+  path: string
+  size: number
 }
 
 interface SessionInfo {
@@ -169,6 +193,7 @@ const loadingSessionId = ref<number | null>(null)
 const isLoading = ref(false)
 const isSessionLoading = ref(false)
 const inputMessage = ref('')
+const pendingAttachment = ref<AttachmentInfo | null>(null)
 const messagesContainer = ref<HTMLElement | null>(null)
 const inputRef = ref<HTMLTextAreaElement | null>(null)
 
@@ -196,6 +221,47 @@ const scrollToBottom = async () => {
   }
 }
 
+/** attachment 可能为 JSON 字符串或纯文件名，统一取原文件名 */
+const safeAttachmentName = (raw: string): string => {
+  try {
+    const parsed = JSON.parse(raw)
+    if (parsed && parsed.name) return parsed.name
+  } catch {
+    /* 非 JSON，视为纯文件名 */
+  }
+  return raw
+}
+
+/** 选择附件：先上传后端，成功后暂存到 pendingAttachment 供发送 */
+const onFileSelected = async (e: Event) => {
+  const input = e.target as HTMLInputElement
+  const file = input.files && input.files[0]
+  if (!file) return
+  try {
+    const fd = new FormData()
+    fd.append('file', file)
+    const res = await fetch('/api/sessions/upload', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` },
+      body: fd,
+    })
+    if (!res.ok) {
+      const err = await res.json().catch(() => null)
+      alert(err?.detail || '附件上传失败')
+      return
+    }
+    const data = await res.json()
+    pendingAttachment.value = { name: data.name, path: data.path, size: data.size }
+    log('附件已上传:', data.name)
+  } catch (err) {
+    log('上传附件失败:', err)
+    alert('附件上传失败，请重试')
+  } finally {
+    input.value = ''
+  }
+}
+
 // 发送消息
 const handleSend = async () => {
   const content = inputMessage.value.trim()
@@ -203,9 +269,20 @@ const handleSend = async () => {
 
   log('发送消息:', content)
 
+  // 携带附件信息
+  let attachmentJson: string | null = null
+  if (pendingAttachment.value) {
+    attachmentJson = JSON.stringify({
+      name: pendingAttachment.value.name,
+      path: pendingAttachment.value.path,
+      size: pendingAttachment.value.size,
+    })
+  }
+
   // 添加用户消息
-  messages.value.push({ role: 'user', content })
+  messages.value.push({ role: 'user', content, attachment: pendingAttachment.value?.name })
   inputMessage.value = ''
+  pendingAttachment.value = null
   autoResize()
   await scrollToBottom()
 
@@ -252,6 +329,7 @@ const handleSend = async () => {
         course_id: finalCourseId,
         // 已有会话则沿用，否则后端会自动创建新会话
         session_id: currentSessionId.value,
+        attachment: attachmentJson,
       }),
     })
 
@@ -411,6 +489,7 @@ const loadMessages = async (sessionId: number) => {
       role: m.role === 'user' ? 'user' : 'assistant',
       content: m.content || '',
       sources: Array.isArray(m.sources) ? m.sources : (m.sources ? JSON.parse(m.sources) : []),
+      attachment: m.attachment ? safeAttachmentName(m.attachment) : undefined,
     }))
     await scrollToBottom()
   } catch (e) {
@@ -760,6 +839,25 @@ onMounted(async () => {
   margin: 0;
 }
 
+// 消息附件标记
+.msg-attachment {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.16);
+  font-size: var(--text-sm);
+
+  .msg-attachment-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 220px;
+  }
+}
+
 // 溯源信息
 .sources {
   display: flex;
@@ -843,8 +941,51 @@ onMounted(async () => {
 
 .input-wrapper {
   display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.input-row {
+  display: flex;
   gap: var(--space-3);
   align-items: flex-end;
+}
+
+.attachment-preview {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  background: rgba(var(--green), 0.08);
+  border: 1px solid rgba(var(--green), 0.35);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  align-self: flex-start;
+
+  i {
+    color: rgb(var(--green));
+  }
+
+  .attachment-preview-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 260px;
+  }
+
+  .attachment-remove {
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    color: var(--text-muted);
+    display: inline-flex;
+    padding: 2px;
+
+    &:hover {
+      color: rgb(var(--red, 180, 40, 40), 0.9);
+    }
+  }
 }
 
 .chat-input {
@@ -870,6 +1011,38 @@ onMounted(async () => {
   &:disabled {
     background: var(--bg-tertiary);
     cursor: not-allowed;
+  }
+}
+
+.btn-attach {
+  height: 44px;
+  width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s;
+
+  i {
+    font-size: var(--text-lg);
+  }
+
+  &:hover:not(.disabled) {
+    color: rgb(var(--green));
+    border-color: rgb(var(--green));
+  }
+
+  &.disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  .attach-file-input {
+    display: none;
   }
 }
 

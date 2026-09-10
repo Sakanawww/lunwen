@@ -52,6 +52,7 @@ class ChatIn(BaseModel):
     session_id: Optional[int] = None
     course_id: Optional[int] = None
     question: str
+    attachment: Optional[str] = None  # 附件描述（JSON: 原文件名/存储路径/大小）
 
 
 # ---------- 知识库 ----------

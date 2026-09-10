@@ -120,6 +120,7 @@ class Message(Base):
     role = Column(Enum("user", "assistant", "agent"), nullable=False)
     content = Column(Text, nullable=False)
     sources = Column(Text)
+    attachment = Column(Text)
     created_at = Column(DateTime, server_default=func.now())
 
 

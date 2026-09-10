@@ -1,7 +1,7 @@
 """答疑接口：创建会话 + SSE 流式答疑（RAG + 多轮）。"""
 import json
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session as OrmSession
 
@@ -118,9 +118,41 @@ def get_messages(session_id: int, db: OrmSession = Depends(get_db),
         .all()
     )
     return [
-        {"role": x.role, "content": x.content, "sources": x.sources}
+        {"role": x.role, "content": x.content, "sources": x.sources,
+         "attachment": x.attachment}
         for x in msgs
     ]
+
+
+_CHAT_UPLOAD_EXTS = {"txt", "md", "markdown", "pdf", "docx", "py", "png", "jpg", "jpeg"}
+
+
+@router.post("/sessions/upload")
+async def upload_chat_file(
+    request: Request,
+    file: UploadFile = File(...),
+    user: m.User = Depends(current_user),
+):
+    """学生/教师向答疑上传附件。文件落盘 data/uploads/chat/，返回存储的相对文件名。"""
+    from app.core.config import settings
+
+    fname = (file.filename or "").strip()
+    if not fname:
+        raise HTTPException(status_code=400, detail="文件名为空")
+    ext = fname.rsplit(".", 1)[-1].lower() if "." in fname else ""
+    if ext not in _CHAT_UPLOAD_EXTS:
+        raise HTTPException(status_code=400, detail=f"不支持的文件类型：.{ext}")
+    data = file.file.read()
+    if len(data) > 20 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="文件不能超过 20MB")
+
+    import uuid
+
+    dest_dir = settings.UPLOAD_DIR / "chat"
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    stored = f"{uuid.uuid4().hex}.{ext}" if ext else uuid.uuid4().hex
+    (dest_dir / stored).write_bytes(data)
+    return {"code": 0, "name": fname, "path": f"chat/{stored}", "size": len(data)}
 
 
 @router.post("/chat/stream")
@@ -172,8 +204,17 @@ async def chat_stream(body: ChatIn, request: Request, db: OrmSession = Depends(g
     # 路由 + 答疑 Agent
     kb = KnowledgeBase(course_id)
     agent = TutorAgent(kb, course_id)
-    db.add(m.Message(session_id=sess_id, role="user", content=question))
+    db.add(m.Message(session_id=sess_id, role="user", content=question,
+                     attachment=body.attachment))
     db.commit()
+
+    # 附件摘要（用于提示词上下文，不改变功能逻辑）
+    if body.attachment:
+        try:
+            att = json.loads(body.attachment)
+            question = f"{question}\n[附件：{att.get('name', '未知文件')}]"
+        except Exception:
+            pass
 
     def _gen():
         full = ""
