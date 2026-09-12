@@ -29,12 +29,20 @@ SCRIPTS_DIR = BASE_DIR / "scripts"
 PID_DIR = SCRIPTS_DIR / ".pids"
 LOG_DIR = SCRIPTS_DIR / ".logs"
 
+# 优先使用项目 venv 的 Python，确保依赖完整
+# sys.executable 可能指向系统 Python（依赖不一定装全），venv 更可靠
+if sys.platform == "win32":
+    _VENV_PYTHON = str(BASE_DIR / ".venv" / "Scripts" / "python.exe")
+else:
+    _VENV_PYTHON = str(BASE_DIR / ".venv" / "bin" / "python")
+PYTHON_EXE = _VENV_PYTHON if os.path.isfile(_VENV_PYTHON) else sys.executable
+
 # 进程配置
 PROCESSES = {
     "backend": {
         "name": "后端服务 (FastAPI)",
         "command": [
-            sys.executable, "-m", "uvicorn", "app.main:app",
+            PYTHON_EXE, "-m", "uvicorn", "app.main:app",
             "--host", "0.0.0.0",
             "--port", "8000",
             "--reload"
@@ -220,6 +228,9 @@ def start_all(daemon: bool = False):
     
     ensure_dirs()
     
+    # 前置检查：确认 Python 解释器和关键依赖可用
+    _preflight_check()
+    
     # 检查后端是否已在运行
     backend_pid = get_pid("backend")
     if backend_pid and is_process_running(backend_pid):
@@ -240,6 +251,13 @@ def start_all(daemon: bool = False):
         # 启动前端
         frontend_pid = start_process("frontend", daemon)
     
+    # 等待前端启动并验证
+    print("  等待前端服务就绪...")
+    if not _wait_for_port(5173, timeout=15):
+        print("  ⚠ 前端服务在 15 秒内未就绪，请检查 scripts/.logs/frontend.log")
+    else:
+        print("  ✓ 前端服务已就绪")
+    
     print("=" * 60)
     print("✓ 所有服务已启动")
     print("=" * 60)
@@ -255,6 +273,68 @@ def start_all(daemon: bool = False):
         "frontend": frontend_pid,
         "started_at": datetime.now().isoformat(),
     }))
+
+
+def _preflight_check():
+    """启动前检查：确认 Python 依赖、MySQL、Redis 可用。"""
+    import socket
+    import socket
+    
+    # 1. 检查 Python 依赖
+    print("  [检查] Python 依赖...")
+    result = subprocess.run(
+        [PYTHON_EXE, "-c",
+         "import importlib.util as u; deps=['fastapi','uvicorn','sqlalchemy','pymysql','redis','fakeredis','openai','langchain','langgraph','faiss','pypdf','dotenv']; missing=[d for d in deps if u.find_spec(d) is None]; print(','.join(missing) if missing else ''); exit(1 if missing else 0)"],
+        capture_output=True, text=True
+    )
+    if result.returncode != 0:
+        missing = result.stdout.strip() or "未知依赖"
+        print(f"  ✗ Python 依赖缺失: {missing}")
+        print(f"    请运行: {PYTHON_EXE} -m pip install -r requirements.txt")
+        sys.exit(1)
+    print("  ✓ Python 依赖完整")
+    
+    # 2. 检查 MySQL 端口
+    print("  [检查] MySQL (:3306)...")
+    if not _is_port_open("127.0.0.1", 3306):
+        print("  ⚠ MySQL 未在 :3306 监听，后端将无法连接数据库")
+        print("    请启动 MySQL 服务后再试")
+        sys.exit(1)
+    print("  ✓ MySQL 可连接")
+    
+    # 3. 检查 Redis（可选 — 降级 fakeredis）
+    print("  [检查] Redis (:6379)...")
+    if _is_port_open("127.0.0.1", 6379):
+        print("  ✓ Redis 可连接")
+    else:
+        print("  ⚠ Redis 未在 :6379 监听，将降级为 fakeredis（重启后会话丢失）")
+    
+    # 4. 检查前端 node_modules
+    node_modules = BASE_DIR / "frontend" / "node_modules"
+    if not node_modules.exists():
+        print("  ⚠ 前端 node_modules 不存在，请先运行: cd frontend && npm install")
+        sys.exit(1)
+    print("  ✓ 前端依赖已安装")
+
+
+def _is_port_open(host: str, port: int, timeout: float = 2.0) -> bool:
+    """检查 TCP 端口是否可连接。"""
+    import socket
+    try:
+        with socket.create_connection((host, port), timeout=timeout):
+            return True
+    except (ConnectionRefusedError, OSError):
+        return False
+
+
+def _wait_for_port(port: int, timeout: int = 15) -> bool:
+    """等待端口可连接，超时返回 False。"""
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        if _is_port_open("127.0.0.1", port, timeout=1.0):
+            return True
+        time.sleep(1)
+    return False
 
 
 def stop_all():
