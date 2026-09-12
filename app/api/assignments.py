@@ -77,6 +77,14 @@ def list_assignments(course_id: int, db: OrmSession = Depends(get_db),
             "status": sub.status,
             "submitted_at": sub.submitted_at.strftime("%Y-%m-%d %H:%M") if sub.submitted_at else None,
         } if sub else None
+        # 附带批改结果（如果已批改）
+        item["my_submission_score"] = None
+        item["my_submission_feedback"] = None
+        if sub and sub.status == "graded":
+            rec = db.query(m.GradingRecord).filter(m.GradingRecord.submission_id == sub.id).first()
+            if rec:
+                item["my_submission_score"] = float(rec.score) if rec.score is not None else None
+                item["my_submission_feedback"] = rec.feedback
         # 提交人数
         item["submission_count"] = db.query(m.Submission).filter(
             m.Submission.assignment_id == a.id

@@ -189,7 +189,10 @@ onMounted(async () => {
   } else if (courseStore.courses.length > 0) {
     form.value.courseId = courseStore.courses[0].id
   }
-  await loadAssignments()
+  // courseId watcher 会自动触发 loadAssignments，无需再手动调用
+  if (!form.value.courseId) {
+    await loadAssignments()
+  }
 })
 </script>
 

@@ -206,11 +206,6 @@
           </div>
         </div>
 
-        <div v-if="!isCorrect" class="explanation">
-          <h4><i class="ri-lightbulb-flash-line"></i> 解析</h4>
-          <p>正确答案：{{ correctAnswer }}</p>
-        </div>
-
         <div class="modal-actions">
           <button type="button" class="btn btn-primary" @click="closeResult">
             <i class="ri-check-line"></i> 确定

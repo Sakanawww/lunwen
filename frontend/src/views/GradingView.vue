@@ -178,7 +178,7 @@ const loadSubmissions = async () => {
       student_id: s.student_id,
       student_name: s.student_name || `#${s.student_id}`,
       content: s.content || '',
-      status: s.score !== null ? 'graded' : 'pending',
+      status: s.status === 'graded' ? 'graded' : 'pending',
       score: s.score,
       feedback: s.feedback,
       grading: false,

@@ -117,22 +117,10 @@ const loadAssignments = async () => {
   try {
     const data: any = await api.get(`/api/assignments/course/${selectedCourseId.value}`)
     const list: Assignment[] = Array.isArray(data) ? data : []
-    // 如果已提交，预填提交内容
+    // 预填提交内容
     for (const a of list) {
       if (!submitContent[a.id]) {
         submitContent[a.id] = ''
-      }
-    }
-    // 加载批改分数
-    for (const a of list) {
-      if (a.my_submission?.status === 'graded') {
-        try {
-          const detail: any = await api.get(`/api/assignments/${a.id}`)
-          if (detail.my_submission) {
-            a.my_submission_score = null
-            a.my_submission_feedback = null
-          }
-        } catch { /* ignore */ }
       }
     }
     assignments.value = list
