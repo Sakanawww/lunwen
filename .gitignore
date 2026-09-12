@@ -22,3 +22,7 @@ data/faiss_index/
 *.log
 # 进程 PID 文件
 scripts/.pids/
+
+# 个人论文材料（不入库）
+论文/
+模板/
