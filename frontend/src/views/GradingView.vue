@@ -48,7 +48,7 @@
             >
               <td class="td-mono">{{ sub.id }}</td>
               <td>{{ sub.assignment_title }}</td>
-              <td>{{ sub.student }}</td>
+              <td>{{ sub.student_name }}</td>
               <td class="content-cell">{{ sub.content }}</td>
               <td>
                 <span
@@ -137,7 +137,8 @@ import { api } from '@/utils/request'
 interface Submission {
   id: number
   assignment_title: string
-  student: number
+  student_id: number
+  student_name: string
   content: string
   status: 'pending' | 'graded'
   score: number | null
@@ -174,7 +175,8 @@ const loadSubmissions = async () => {
     submissions.value = (Array.isArray(data) ? data : []).map((s: any) => ({
       id: s.id,
       assignment_title: s.assignment_title || '—',
-      student: s.student,
+      student_id: s.student_id,
+      student_name: s.student_name || `#${s.student_id}`,
       content: s.content || '',
       status: s.score !== null ? 'graded' : 'pending',
       score: s.score,

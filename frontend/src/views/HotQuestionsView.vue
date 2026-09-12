@@ -48,7 +48,7 @@
       <div class="question-list">
         <div
           v-for="(q, index) in filteredQuestions"
-          :key="q.id"
+          :key="index"
           class="question-item"
           :class="'fade-in'"
           :style="{ animationDelay: `${index * 0.03}s` }"

@@ -6,7 +6,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { Course } from '@/types'
-import { api } from '@/utils/request'
 
 export interface CourseWithTeacher extends Course {
   teacher_name?: string
@@ -110,16 +109,6 @@ export const useCourseStore = defineStore('course', () => {
         currentCourseId.value = id
       }
     }
-  }
-
-  /**
-   * 清除认证信息（用于 401 错误）
-   */
-  function clearAuth() {
-    localStorage.removeItem('token')
-    localStorage.removeItem('user')
-    // 触发重新登录
-    window.location.href = '/login'
   }
 
   /**

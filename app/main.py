@@ -14,7 +14,7 @@ from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session as OrmSession
 
-from app.api import accounts, agents, auth, chat, courses, dashboard, grading, knowledge, logs, practice, question
+from app.api import accounts, agents, assignments, auth, chat, courses, dashboard, grading, knowledge, logs, practice, question
 from app.core import session as sstore
 from app.core.config import settings
 from app.core.course_deps import course_role
@@ -70,6 +70,7 @@ app.include_router(auth.router)
 app.include_router(chat.router)
 app.include_router(knowledge.router)
 app.include_router(grading.router)
+app.include_router(assignments.router)
 app.include_router(question.router)
 app.include_router(dashboard.router)
 app.include_router(logs.router)

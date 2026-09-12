@@ -73,6 +73,55 @@
       </div>
     </div>
 
+    <!-- 答题历史 -->
+    <div class="card">
+      <div class="section-head">
+        <h2 class="card-title"><i class="ri-history-line"></i> 我的答题记录</h2>
+        <div class="actions">
+          <span class="doc-count">正确率：{{ historyAccuracy }}%</span>
+          <button class="btn btn-secondary btn-sm" @click="loadHistory">
+            <i class="ri-refresh-line"></i> 刷新
+          </button>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>题目ID</th>
+              <th>课程ID</th>
+              <th>结果</th>
+              <th>得分</th>
+              <th>时间</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="r in history" :key="r.id">
+              <td class="td-mono">{{ r.id }}</td>
+              <td class="td-mono">{{ r.question_id }}</td>
+              <td class="td-mono">{{ r.course_id }}</td>
+              <td>
+                <span class="status-badge" :class="r.is_correct ? 'status-active' : 'status-ended'">
+                  <i :class="r.is_correct ? 'ri-check-line' : 'ri-close-line'"></i>
+                  {{ r.is_correct ? '正确' : '错误' }}
+                </span>
+              </td>
+              <td class="num">{{ r.score ?? '—' }}</td>
+              <td class="td-mono">{{ r.created_at }}</td>
+            </tr>
+            <tr v-if="history.length === 0">
+              <td colspan="6" class="empty-state">
+                <i class="ri-inbox-line"></i>
+                <p>暂无答题记录</p>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- 练习弹窗 -->
     <div
       v-if="showPracticeModal"
@@ -157,7 +206,7 @@
           </div>
         </div>
 
-        <div v-if="explanation" class="explanation">
+        <div v-if="!isCorrect" class="explanation">
           <h4><i class="ri-lightbulb-flash-line"></i> 解析</h4>
           <p>正确答案：{{ correctAnswer }}</p>
         </div>
@@ -213,6 +262,22 @@ const loading = ref(false)
 
 const questions = ref<Question[]>([])
 
+// 答题历史
+interface HistoryRecord {
+  id: number
+  question_id: number
+  course_id: number
+  is_correct: boolean
+  score: number | null
+  created_at: string | null
+}
+const history = ref<HistoryRecord[]>([])
+const historyAccuracy = computed(() => {
+  if (history.value.length === 0) return 0
+  const correct = history.value.filter(r => r.is_correct).length
+  return Math.round((correct / history.value.length) * 100)
+})
+
 const typeLabels: Record<string, string> = {
   choice: '选择题',
   fill: '填空题',
@@ -223,8 +288,9 @@ const courseOptions = computed(() => {
   return courseStore.courses.map(c => ({ value: c.id, label: c.name }))
 })
 
-const onCourseChange = (courseId: number) => {
-  courseStore.setActiveCourse(courseId)
+const onCourseChange = (courseId: string | number) => {
+  const id = Number(courseId)
+  courseStore.setActiveCourse(id)
   loadQuestions()
 }
 
@@ -287,10 +353,28 @@ const closePractice = () => {
   userAnswer.value = ''
 }
 
+const loadHistory = async () => {
+  try {
+    const data: any = await api.get('/api/practice/my')
+    history.value = (Array.isArray(data) ? data : []).map((r: any) => ({
+      id: r.id,
+      question_id: r.question_id,
+      course_id: r.course_id,
+      is_correct: r.is_correct,
+      score: r.score,
+      created_at: r.created_at,
+    }))
+  } catch (error) {
+    console.error('获取答题历史失败:', error)
+    history.value = []
+  }
+}
+
 const closeResult = () => {
   showResultModal.value = false
   currentQuestion.value = null
   userAnswer.value = ''
+  loadHistory()
 }
 
 onMounted(async () => {
@@ -301,6 +385,7 @@ onMounted(async () => {
     selectedCourseId.value = courseStore.currentCourseId || courseStore.courses[0].id
   }
   loadQuestions()
+  loadHistory()
 })
 </script>
 

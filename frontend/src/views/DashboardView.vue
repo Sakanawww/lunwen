@@ -481,11 +481,6 @@ const exportReport = () => {
   document.body.removeChild(link)
 }
 
-const viewStudents = () => {
-  // 跳转到学生名单页面
-  window.location.href = '/dashboard/students'
-}
-
 // 监听课程下拉变化：切换课程并重新拉整份看板数据
 watch(selectedCourseId, (newId) => {
   if (newId) {

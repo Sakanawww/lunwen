@@ -3,15 +3,27 @@
     <!-- 页面标题 -->
     <div class="page-header">
       <div class="page-title">
-        <h1><i class="ri-delete-bin-2-line"></i> 回收站</h1>
-        <p class="page-subtitle">查看和管理已删除的会话</p>
+        <h1><i class="ri-delete-bin-2-line"></i> 试题回收站</h1>
+        <p class="page-subtitle">查看和恢复已删除的试题</p>
+      </div>
+    </div>
+
+    <!-- 课程选择 -->
+    <div class="card" v-if="courseOptions.length > 0">
+      <div class="form-group">
+        <label><i class="ri-book-open-line"></i> 选择课程</label>
+        <DropdownSelect
+          v-model="selectedCourseId"
+          :options="courseOptions"
+          placeholder="选择课程…"
+        />
       </div>
     </div>
 
     <!-- 回收站列表 -->
     <div class="card">
       <div class="section-head">
-        <h2 class="card-title"><i class="ri-history-line"></i> 已删除会话</h2>
+        <h2 class="card-title"><i class="ri-history-line"></i> 已删除试题</h2>
         <div class="actions">
           <button class="btn btn-secondary" @click="batchRestore" :disabled="selectedIds.length === 0">
             <i class="ri-restore-line"></i>
@@ -31,7 +43,7 @@
           <input
             v-model="searchQuery"
             type="text"
-            placeholder="搜索会话标题..."
+            placeholder="搜索题干..."
             class="search-input"
           />
         </div>
@@ -48,44 +60,47 @@
                   @change="toggleSelectAll"
                 />
               </th>
-              <th>会话标题</th>
-              <th>课程</th>
+              <th>ID</th>
+              <th>题型</th>
+              <th>题干</th>
+              <th>难度</th>
               <th>删除时间</th>
               <th>操作</th>
             </tr>
           </thead>
           <tbody>
             <tr
-              v-for="session in filteredSessions"
-              :key="session.id"
+              v-for="q in filteredQuestions"
+              :key="q.id"
             >
               <td>
                 <input
                   type="checkbox"
-                  :value="session.id"
+                  :value="q.id"
                   v-model="selectedIds"
                 />
               </td>
+              <td class="td-mono">{{ q.id }}</td>
               <td>
-                <div class="session-title">
-                  <i class="ri-chat-1-line"></i>
-                  <span>{{ session.title }}</span>
-                </div>
+                <span class="q-type">{{ typeLabels[q.type] || q.type }}</span>
               </td>
-              <td class="td-mono">{{ session.course_name || '—' }}</td>
-              <td class="td-mono">{{ formatDeletedAt(session.deleted_at) }}</td>
+              <td class="stem-cell">{{ q.stem }}</td>
+              <td>
+                <span class="difficulty-badge" :class="`diff-${q.difficulty}`">{{ q.difficulty }}</span>
+              </td>
+              <td class="td-mono">{{ q.deleted_at || '—' }}</td>
               <td>
                 <div class="actions-cell">
                   <button
                     class="btn btn-sm btn-secondary"
-                    @click="restoreSession(session.id)"
+                    @click="restoreQuestion(q.id)"
                     title="恢复"
                   >
                     <i class="ri-restore-line"></i>
                   </button>
                   <button
                     class="btn btn-sm btn-danger"
-                    @click="deleteSession(session.id)"
+                    @click="permanentlyDelete(q.id)"
                     title="彻底删除"
                   >
                     <i class="ri-delete-bin-line"></i>
@@ -93,10 +108,10 @@
                 </div>
               </td>
             </tr>
-            <tr v-if="filteredSessions.length === 0">
-              <td colspan="5" class="empty-state">
+            <tr v-if="filteredQuestions.length === 0">
+              <td colspan="7" class="empty-state">
                 <i class="ri-inbox-line"></i>
-                <p>暂无已删除会话</p>
+                <p>暂无已删除试题</p>
               </td>
             </tr>
           </tbody>
@@ -107,76 +122,125 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { useChatStore } from '@/stores/chat.store'
+import { ref, computed, onMounted, watch } from 'vue'
+import DropdownSelect from '@/components/form/DropdownSelect.vue'
 import { useCourseStore } from '@/stores/course.store'
-import { storeToRefs } from 'pinia'
 
-const chatStore = useChatStore()
 const courseStore = useCourseStore()
 
-const { deletedSessions } = storeToRefs(chatStore)
-const courses = computed(() => courseStore.courses)
+interface DeletedQuestion {
+  id: number
+  type: string
+  stem: string
+  difficulty: number
+  deleted_at: string | null
+}
 
+const typeLabels: Record<string, string> = {
+  choice: '选择题',
+  fill: '填空题',
+  short: '简答题',
+}
+
+const selectedCourseId = ref<number | null>(null)
+const deletedQuestions = ref<DeletedQuestion[]>([])
 const searchQuery = ref('')
 const selectedIds = ref<number[]>([])
 
-const filteredSessions = computed(() => {
+const courseOptions = computed(() =>
+  courseStore.courses.map(c => ({ value: c.id, label: c.name }))
+)
+
+const filteredQuestions = computed(() => {
   const query = searchQuery.value.toLowerCase()
-  return deletedSessions.value.filter(session =>
-    session.title.toLowerCase().includes(query)
+  return deletedQuestions.value.filter(q =>
+    q.stem.toLowerCase().includes(query)
   )
 })
 
 const allSelected = computed(() => {
-  return filteredSessions.value.length > 0 &&
-    filteredSessions.value.every(s => selectedIds.value.includes(s.id))
+  return filteredQuestions.value.length > 0 &&
+    filteredQuestions.value.every(q => selectedIds.value.includes(q.id))
 })
 
 const toggleSelectAll = () => {
   if (allSelected.value) {
     selectedIds.value = []
   } else {
-    selectedIds.value = filteredSessions.value.map(s => s.id)
+    selectedIds.value = filteredQuestions.value.map(q => q.id)
   }
 }
 
-const formatDeletedAt = (dateStr: string) => {
-  if (!dateStr) return '—'
-  const date = new Date(dateStr)
-  return date.toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
+const authHeaders = () => ({
+  'Content-Type': 'application/json',
+  'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
+})
+
+const loadDeletedQuestions = async () => {
+  if (!selectedCourseId.value) {
+    deletedQuestions.value = []
+    return
+  }
+  try {
+    const res = await fetch(`/api/question/deleted/${selectedCourseId.value}`, {
+      headers: { 'Authorization': authHeaders().Authorization },
+    })
+    if (!res.ok) {
+      deletedQuestions.value = []
+      return
+    }
+    const data = await res.json()
+    deletedQuestions.value = (data || []).map((q: any) => ({
+      id: q.id,
+      type: q.type,
+      stem: q.stem,
+      difficulty: q.difficulty ?? 3,
+      deleted_at: q.deleted_at,
+    }))
+  } catch (e) {
+    console.error('加载已删除试题失败:', e)
+    deletedQuestions.value = []
+  }
 }
 
-const restoreSession = async (sessionId: number) => {
+const restoreQuestion = async (id: number) => {
   try {
-    await chatStore.restoreSession(sessionId)
+    const res = await fetch(`/api/question/${id}/restore`, {
+      method: 'POST',
+      headers: authHeaders(),
+    })
+    if (!res.ok) throw new Error('恢复失败')
+    await loadDeletedQuestions()
   } catch (error) {
     console.error('恢复失败:', error)
   }
 }
 
-const deleteSession = async (sessionId: number) => {
-  if (!confirm('确定要彻底删除该会话吗？此操作不可恢复。')) return
+const permanentlyDelete = async (id: number) => {
+  if (!confirm('确定要彻底删除该试题吗？此操作不可恢复。')) return
   try {
-    await chatStore.deleteSession(sessionId, true)
+    const res = await fetch(`/api/question/${id}?permanent=1`, {
+      method: 'DELETE',
+      headers: authHeaders(),
+    })
+    if (!res.ok) throw new Error('删除失败')
+    await loadDeletedQuestions()
   } catch (error) {
-    console.error('删除失败:', error)
+    console.error('彻底删除失败:', error)
   }
 }
 
 const batchRestore = async () => {
   if (selectedIds.value.length === 0) return
   try {
-    for (const id of selectedIds.value) {
-      await chatStore.restoreSession(id)
+    for (const id of [...selectedIds.value]) {
+      await fetch(`/api/question/${id}/restore`, {
+        method: 'POST',
+        headers: authHeaders(),
+      })
     }
     selectedIds.value = []
+    await loadDeletedQuestions()
   } catch (error) {
     console.error('批量恢复失败:', error)
   }
@@ -184,19 +248,39 @@ const batchRestore = async () => {
 
 const batchDelete = async () => {
   if (selectedIds.value.length === 0) return
-  if (!confirm(`确定要彻底删除 ${selectedIds.value.length} 个会话吗？此操作不可恢复。`)) return
+  if (!confirm(`确定要彻底删除 ${selectedIds.value.length} 道试题吗？此操作不可恢复。`)) return
   try {
-    for (const id of selectedIds.value) {
-      await chatStore.deleteSession(id, true)
+    for (const id of [...selectedIds.value]) {
+      await fetch(`/api/question/${id}?permanent=1`, {
+        method: 'DELETE',
+        headers: authHeaders(),
+      })
     }
     selectedIds.value = []
+    await loadDeletedQuestions()
   } catch (error) {
     console.error('批量删除失败:', error)
   }
 }
 
-onMounted(() => {
-  chatStore.refreshDeletedSessions()
+watch(selectedCourseId, () => {
+  loadDeletedQuestions()
+})
+
+onMounted(async () => {
+  if (courseStore.courses.length === 0) {
+    try {
+      await courseStore.fetchCourses()
+    } catch (e) {
+      console.error('加载课程列表失败:', e)
+    }
+  }
+  if (courseStore.currentCourseId) {
+    selectedCourseId.value = courseStore.currentCourseId
+  } else if (courseStore.courses.length > 0) {
+    selectedCourseId.value = courseStore.courses[0].id
+  }
+  await loadDeletedQuestions()
 })
 </script>
 
@@ -236,6 +320,25 @@ onMounted(() => {
   border-radius: var(--radius-lg);
   padding: var(--space-6);
   box-shadow: var(--shadow-sm);
+  margin-bottom: var(--space-6);
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-width: 400px;
+
+  label {
+    font-size: var(--text-sm);
+    font-weight: var(--font-medium);
+    color: var(--text-primary);
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+
+    i { color: rgb(var(--green)); }
+  }
 }
 
 .section-head {
@@ -254,9 +357,7 @@ onMounted(() => {
     align-items: center;
     gap: var(--space-2);
 
-    i {
-      color: var(--accent);
-    }
+    i { color: var(--accent); }
   }
 
   .actions {
@@ -339,22 +440,47 @@ onMounted(() => {
     text-align: center;
   }
 
-  .session-title {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
-    font-weight: var(--font-medium);
-    color: var(--text-primary);
-
-    i {
-      color: var(--accent);
-    }
+  .stem-cell {
+    max-width: 400px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .td-mono {
     font-family: var(--font-mono);
     font-size: var(--text-xs);
     color: var(--text-muted);
+  }
+
+  .q-type {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    font-size: var(--text-xs);
+    padding: var(--space-1) var(--space-3);
+    background: rgba(6, 182, 212, 0.1);
+    color: rgb(6, 182, 212);
+    border-radius: var(--radius-full);
+  }
+
+  .difficulty-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    height: 24px;
+    padding: 0 var(--space-1);
+    border-radius: var(--radius-full);
+    font-size: var(--text-xs);
+    font-weight: var(--font-semibold);
+    font-family: var(--font-mono);
+
+    &.diff-1 { background: rgba(16, 185, 129, 0.15); color: rgb(6, 118, 71); }
+    &.diff-2 { background: rgba(59, 130, 246, 0.15); color: rgb(37, 99, 235); }
+    &.diff-3 { background: rgba(245, 158, 11, 0.15); color: rgb(184, 106, 0); }
+    &.diff-4 { background: rgba(239, 68, 68, 0.15); color: rgb(185, 28, 28); }
+    &.diff-5 { background: rgba(139, 92, 246, 0.15); color: rgb(124, 58, 237); }
   }
 
   .actions-cell {

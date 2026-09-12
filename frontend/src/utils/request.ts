@@ -1,6 +1,5 @@
 import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosError } from 'axios'
 import { useAuthStore } from '@/stores/auth.store'
-import { sanitizeInput } from './security'
 
 // API 基础 URL - 开发环境使用 Vite 代理，生产环境可配置
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || ''

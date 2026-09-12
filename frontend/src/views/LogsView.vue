@@ -98,7 +98,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { request } from '@/utils/request'
+import request from '@/utils/request'
 
 interface Log {
   id: number

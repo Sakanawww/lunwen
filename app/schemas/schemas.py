@@ -107,3 +107,15 @@ class CourseMemberIn(BaseModel):
     """教师为学生在某课程内分配角色。"""
     user_id: int
     role: str = Field(..., pattern="^(owner|teacher|assistant|student)$")
+
+
+# ---------- 作业 / 提交 ----------
+class AssignmentCreateIn(BaseModel):
+    course_id: int
+    title: str = Field(..., min_length=1, max_length=200)
+    description: Optional[str] = Field(None, max_length=5000)
+    deadline: Optional[str] = None
+
+
+class SubmissionCreateIn(BaseModel):
+    content: str = Field(..., min_length=1, max_length=20000)

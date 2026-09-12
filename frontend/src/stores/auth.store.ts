@@ -6,7 +6,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { User } from '@/types'
-import { api } from '@/utils/request'
 
 export interface LoginCredentials {
   username: string

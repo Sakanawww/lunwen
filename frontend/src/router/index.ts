@@ -54,6 +54,18 @@ const routes: RouteRecordRaw[] = [
         meta: { roles: ['teacher', 'admin'] },
       },
       {
+        path: 'assignments',
+        name: 'Assignments',
+        component: () => import('@/views/AssignmentsView.vue'),
+        meta: { roles: ['teacher', 'admin'] },
+      },
+      {
+        path: 'my-assignments',
+        name: 'MyAssignments',
+        component: () => import('@/views/MyAssignmentsView.vue'),
+        meta: { roles: ['student', 'teacher', 'admin'] },
+      },
+      {
         path: 'questions',
         name: 'Questions',
         component: () => import('@/views/QuestionsView.vue'),
@@ -107,7 +119,6 @@ router.beforeEach((to, _from) => {
   }
   
   const isAuthenticated = !!token && !!user
-  const publicRoutes = ['/login', '/register']
   
   // 公开路由 - 已登录用户访问登录页时重定向
   if (to.path === '/login' || to.path === '/register') {

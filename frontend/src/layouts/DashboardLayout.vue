@@ -47,12 +47,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth.store'
 import { useCourseStore } from '@/stores/course.store'
-import { useRouter } from 'vue-router'
 
-const router = useRouter()
 const authStore = useAuthStore()
 const courseStore = useCourseStore()
 
@@ -67,6 +65,7 @@ const navItems = computed(() => {
     return [
       { path: '/chat', label: '智能答疑' },
       { path: '/practice', label: '在线练习' },
+      { path: '/my-assignments', label: '我的作业' },
       { path: '/courses', label: '我的课程' },
     ]
   } else if (role === 'teacher') {
@@ -74,6 +73,7 @@ const navItems = computed(() => {
       { path: '/dashboard', label: '仪表盘' },
       { path: '/dashboard/students', label: '学生名单' },
       { path: '/knowledge', label: '知识库' },
+      { path: '/assignments', label: '作业管理' },
       { path: '/grading', label: '作业批改' },
       { path: '/questions', label: '试题管理' },
     ]
@@ -83,6 +83,7 @@ const navItems = computed(() => {
       { path: '/dashboard', label: '学情看板' },
       { path: '/dashboard/students', label: '学生名单' },
       { path: '/knowledge', label: '知识库' },
+      { path: '/assignments', label: '作业管理' },
       { path: '/grading', label: '作业批改' },
       { path: '/questions', label: '试题管理' },
       { path: '/admin', label: '系统设置' },

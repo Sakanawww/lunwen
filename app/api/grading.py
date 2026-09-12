@@ -32,7 +32,7 @@ def grade_submission(submission_id: int, request: Request, db: OrmSession = Depe
     from app.utils.logging import write_log
 
     write_log(user.id, "GRADE_SUBMISSION", f"AI 批改作业提交#{sub.id}，得分{float(rec.score)}", request)
-    return {"subscription_id": sub.id,
+    return {"submission_id": sub.id,
             "score": float(rec.score),
             "feedback": rec.feedback,
             "graded_at": rec.graded_at.strftime("%Y-%m-%d %H:%M:%S") if rec.graded_at else None}
@@ -53,11 +53,15 @@ def get_submissions(course_id: int, db: OrmSession = Depends(get_db),
         rec = db.query(m.GradingRecord).filter(
             m.GradingRecord.submission_id == s.id
         ).first()
+        student = db.get(m.User, s.student_id)
+        assignment = db.get(m.Assignment, s.assignment_id)
         data.append({
             "id": s.id,
-            "assignment_title": db.get(m.Assignment, s.assignment_id).title,
-            "student": s.student_id,
-            "content": s.content[:50],
+            "assignment_id": s.assignment_id,
+            "assignment_title": assignment.title if assignment else "",
+            "student_id": s.student_id,
+            "student_name": student.real_name if student else "",
+            "content": s.content,
             "status": s.status,
             "score": float(rec.score) if rec else None,
             "feedback": rec.feedback if rec else None,

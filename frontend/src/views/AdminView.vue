@@ -136,19 +136,16 @@
                   </span>
                 </td>
                 <td>
-                  <span class="status-badge" :class="user.is_active ? 'success' : 'inactive'">
-                    {{ user.is_active ? '正常' : '禁用' }}
-                  </span>
+                  <span class="status-badge success">正常</span>
                 </td>
                 <td class="td-mono">{{ formatDate(user.created_at) }}</td>
                 <td>
                   <div class="actions">
-                    <button class="btn btn-ghost btn-sm" @click="editUser(user)">
+                    <button class="btn btn-ghost btn-sm" @click="editUser(user)" title="编辑">
                       <i class="ri-edit-line"></i>
                     </button>
-                    <button class="btn btn-ghost btn-sm" @click="toggleUserStatus(user)">
-                      <i class="ri-lock-line" v-if="user.is_active"></i>
-                      <i class="ri-unlock-line" v-else></i>
+                    <button class="btn btn-ghost btn-sm" @click="deleteUser(user)" title="删除">
+                      <i class="ri-delete-bin-line"></i>
                     </button>
                   </div>
                 </td>
@@ -367,22 +364,15 @@
             />
           </div>
 
-          <div class="form-group">
-            <label for="role">角色</label>
-            <select id="role" v-model="userForm.role" class="form-select">
-              <option value="student">学生</option>
-              <option value="teacher">教师</option>
-              <option value="admin">管理员</option>
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label class="checkbox-label">
-              <input type="checkbox" v-model="userForm.is_active" />
-              <span>启用账号</span>
-            </label>
-          </div>
-        </form>
+            <div class="form-group">
+              <label for="role">角色</label>
+              <select id="role" v-model="userForm.role" class="form-select">
+                <option value="student">学生</option>
+                <option value="teacher">教师</option>
+                <option value="admin">管理员</option>
+              </select>
+            </div>
+          </form>
 
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" @click="showUserModal = false">
@@ -406,7 +396,6 @@ interface User {
   username: string
   real_name: string
   role: 'student' | 'teacher' | 'admin'
-  is_active: boolean
   created_at: string
 }
 
@@ -451,7 +440,6 @@ const userForm = ref({
   real_name: '',
   password: '',
   role: 'student' as 'student' | 'teacher' | 'admin',
-  is_active: true
 })
 
 // LLM 配置
@@ -495,15 +483,22 @@ const loadStats = async () => {
       const courses: any = await api.get('/api/courses')
       const c = Array.isArray(courses) ? courses : (courses.courses || [])
       stats.value.totalCourses = c.length
+      // 遍历所有课程累计文档和试题数（替代原先硬编码 course_id=1）
+      let totalDocs = 0
+      let totalQs = 0
+      for (const course of c) {
+        try {
+          const docs: any = await api.get(`/api/kb/docs/${course.id}`)
+          totalDocs += (Array.isArray(docs) ? docs : []).length
+        } catch { /* 课程可能无文档 */ }
+        try {
+          const q: any = await api.get(`/api/question/list/${course.id}`)
+          totalQs += (Array.isArray(q) ? q.length : 0)
+        } catch { /* 课程可能无试题 */ }
+      }
+      stats.value.totalDocuments = totalDocs
+      stats.value.totalQuestions = totalQs
     } catch { stats.value.totalCourses = 0 }
-    try {
-      const docs: any = await api.get('/api/kb/docs/1')
-      stats.value.totalDocuments = (Array.isArray(docs) ? docs : []).length
-    } catch { stats.value.totalDocuments = 0 }
-    try {
-      const q: any = await api.get('/api/question/list/1', { params: { page: 1, size: 1 } })
-      stats.value.totalQuestions = q.total || (Array.isArray(q) ? q.length : 0)
-    } catch { stats.value.totalQuestions = 0 }
   } catch (error) {
     console.error('加载统计失败:', error)
   }
@@ -518,7 +513,6 @@ const loadUsers = async () => {
       username: u.username,
       real_name: u.real_name,
       role: u.role,
-      is_active: true,
       created_at: u.created_at || '',
     }))
   } catch (error) {
@@ -550,9 +544,20 @@ const editUser = (user: User) => {
     real_name: user.real_name,
     password: '',
     role: user.role,
-    is_active: user.is_active
   }
   showUserModal.value = true
+}
+
+const deleteUser = async (user: User) => {
+  if (!confirm(`确定要删除用户「${user.real_name}」吗？此操作不可恢复。`)) return
+  try {
+    await api.delete(`/api/accounts/${user.id}`)
+    await loadUsers()
+    await loadStats()
+  } catch (error) {
+    console.error('删除用户失败:', error)
+    alert('删除失败，可能权限不足或不能删除自己')
+  }
 }
 
 const saveUser = async () => {
@@ -561,6 +566,7 @@ const saveUser = async () => {
       await api.put(`/api/accounts/${editingUser.value.id}`, {
         real_name: userForm.value.real_name,
         role: userForm.value.role,
+        ...(userForm.value.password ? { password: userForm.value.password } : {}),
       })
     } else {
       await api.post('/api/accounts', {
@@ -573,18 +579,10 @@ const saveUser = async () => {
     showUserModal.value = false
     editingUser.value = null
     await loadUsers()
+    await loadStats()
   } catch (error) {
     console.error('保存用户失败:', error)
     alert('保存失败，请检查权限或网络')
-  }
-}
-
-const toggleUserStatus = async (user: User) => {
-  try {
-    await api.put(`/api/accounts/${user.id}`, { is_active: !user.is_active })
-    user.is_active = !user.is_active
-  } catch (error) {
-    console.error('切换状态失败:', error)
   }
 }
 

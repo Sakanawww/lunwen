@@ -5,7 +5,6 @@
 
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { api } from '@/utils/request'
 
 export interface Message {
   id?: number
@@ -257,7 +256,7 @@ export const useChatStore = defineStore('chat', () => {
   /**
    * 导出对话记录
    */
-  function exportChat(format: 'txt' | 'md' = 'txt'): string {
+  function exportChat(_fmt: 'txt' | 'md' = 'txt'): string {
     if (messages.value.length === 0) {
       return ''
     }

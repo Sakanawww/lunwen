@@ -69,6 +69,30 @@ class KnowledgeBase:
             self._index_path.mkdir(parents=True, exist_ok=True)
             self._store.save_local(str(self._index_path))
 
+    def rebuild_from_chunks(self, chunks: list[KnowledgeChunk]):
+        """从数据库中残存的文本块重建向量索引（删除文档后调用）。
+
+        若 chunks 为空则清空索引文件。
+        """
+        import shutil
+
+        if not chunks:
+            # 无残存块 → 清理索引目录
+            if self._index_path.exists():
+                shutil.rmtree(self._index_path, ignore_errors=True)
+            self._store = None
+            return
+
+        docs = [
+            Document(
+                page_content=c.content,
+                metadata={"source": c.source or ""},
+            )
+            for c in chunks
+        ]
+        self._store = FAISS.from_documents(docs, llm.embeddings)
+        self.save()
+
     # ---- 检索 ----
     def retrieve(self, query: str, k: int = 5) -> List[tuple[Document, float]]:
         """返回与 query 最相似的 k 个文本块（含相似度分值）。"""
