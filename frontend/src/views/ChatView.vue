@@ -358,7 +358,9 @@ const handleSend = async () => {
     let sources: string[] = []
     let tokenCount = 0
 
-    while (true) {
+    let streamDone = false
+
+    while (!streamDone) {
       const { done, value } = await reader.read()
       if (done) break
 
@@ -370,6 +372,7 @@ const handleSend = async () => {
           const data = line.slice(6)
           if (data === '[DONE]') {
             log('流式传输完成')
+            streamDone = true
             break
           }
 

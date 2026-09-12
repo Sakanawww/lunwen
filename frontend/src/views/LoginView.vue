@@ -129,8 +129,6 @@ const handleLogin = async () => {
   errorMessage.value = ''
 
   try {
-    console.log('开始登录...')
-    
     // 使用相对路径，通过 Vite 代理转发到后端
     const response = await axios.post(`${API_BASE_URL}/auth/login`, {
       username: form.username,
@@ -141,21 +139,16 @@ const handleLogin = async () => {
       },
       withCredentials: true,  // 携带 cookie
     })
-    
-    console.log('登录响应:', response.data)
-    
+
     const result = response.data
-    
+
     // 使用 store 方法设置认证状态
     authStore.setAuth(result.token, result.user)
-    
-    console.log('登录成功，token:', result.token)
-    console.log('用户信息:', result.user)
-    
+
     // 根据用户角色决定跳转目标页面
     const role = result.user?.role
     let targetPath = '/dashboard'
-    
+
     if (role === 'student') {
       targetPath = '/chat'  // 学生跳转到智能答疑
     }

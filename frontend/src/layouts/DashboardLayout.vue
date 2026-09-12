@@ -90,9 +90,6 @@ const navItems = computed(() => {
   }
 })
 
-// 侧边栏导航组（已移除）
-const navGroups = computed(() => [])
-
 const handleLogout = () => {
   authStore.logout()
 }
@@ -234,76 +231,6 @@ onMounted(async () => {
   background: var(--danger);
   border-color: var(--destructive);
   color: var(--danger-text);
-}
-
-/* ========== 侧边栏 ========== */
-.app-sidebar {
-  width: var(--sidebar-w);
-  flex-shrink: 0;
-  background: rgb(var(--card));
-  border-right: 1px solid rgb(var(--line));
-  display: flex;
-  flex-direction: column;
-  overflow-y: auto;
-}
-
-.sidebar-nav {
-  flex: 1;
-  padding: var(--space-4) 0;
-}
-
-.nav-group {
-  margin-bottom: var(--space-6);
-}
-
-.group-title {
-  padding: 0 var(--space-4);
-  margin-bottom: var(--space-2);
-  font-size: var(--text-xs);
-  font-weight: var(--font-semibold);
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-wide);
-}
-
-.nav-link {
-  display: flex;
-  align-items: center;
-  padding: var(--space-2) var(--space-4);
-  margin: var(--space-1) var(--space-2);
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  color: var(--text-secondary);
-  text-decoration: none;
-  border-radius: var(--radius-md);
-  transition: all 0.2s ease;
-}
-
-.nav-link:hover {
-  background: rgb(var(--line));
-  color: var(--text-primary);
-}
-
-.nav-link.active {
-  background: rgb(var(--green));
-  color: rgb(var(--paper));
-}
-
-.nav-label {
-  flex: 1;
-}
-
-.sidebar-footer {
-  padding: var(--space-4);
-  border-top: 1px solid rgb(var(--line));
-  text-align: center;
-}
-
-.version {
-  font-size: var(--text-xs);
-  color: var(--text-muted);
-  font-family: var(--font-mono);
-  letter-spacing: var(--tracking-wide);
 }
 
 /* ========== 主内容区 ========== */

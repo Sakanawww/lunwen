@@ -81,24 +81,24 @@ request.interceptors.response.use(
 
 export default request
 
-// 快捷请求方法
+// 快捷请求方法（响应拦截器已返回 response.data，这里直接透传）
 export const api = {
   get<T = any>(url: string, config?: AxiosRequestConfig): Promise<T> {
-    return request.get(url, config).then((res) => res.data)
+    return request.get(url, config) as unknown as Promise<T>
   },
-  
+
   post<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
-    return request.post(url, data, config).then((res) => res.data)
+    return request.post(url, data, config) as unknown as Promise<T>
   },
-  
+
   put<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
-    return request.put(url, data, config).then((res) => res.data)
+    return request.put(url, data, config) as unknown as Promise<T>
   },
-  
+
   delete<T = any>(url: string, config?: AxiosRequestConfig): Promise<T> {
-    return request.delete(url, config).then((res) => res.data)
+    return request.delete(url, config) as unknown as Promise<T>
   },
-  
+
   // 上传文件
   upload<T = any>(url: string, formData: FormData, config?: AxiosRequestConfig): Promise<T> {
     return request.post(url, formData, {
@@ -106,6 +106,6 @@ export const api = {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
-    }).then((res) => res.data)
+    }) as unknown as Promise<T>
   },
 }

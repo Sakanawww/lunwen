@@ -139,37 +139,26 @@ export const useAuthStore = defineStore('auth', () => {
    */
   async function logout() {
     try {
-      // TODO: 调用登出 API
-      // await api.post('/api/auth/logout')
-      
+      if (token.value) {
+        await fetch('/auth/logout', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token.value}` },
+        }).catch(() => {})
+      }
       clearAuth()
       window.location.href = '/login'
     } catch (err) {
       console.error('登出失败:', err)
-      // 即使失败也清除本地状态
       clearAuth()
     }
   }
 
   /**
-   * 刷新用户信息
+   * 刷新用户信息（返回本地缓存，后端无 /auth/me 端点）
    */
   async function refreshUser() {
     if (!token.value) return null
-    
-    try {
-      // TODO: 调用获取用户信息 API
-      // const data = await api.get<User>('/api/auth/me')
-      // user.value = data
-      
-      // 模拟刷新
-      return user.value
-    } catch (err: any) {
-      if (err.message?.includes('401')) {
-        clearAuth()
-      }
-      throw err
-    }
+    return user.value
   }
 
   /**

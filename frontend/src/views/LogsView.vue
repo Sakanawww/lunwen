@@ -181,9 +181,13 @@ const fetchLogs = async () => {
     if (filters.value.dateFrom) params.append('start_date', filters.value.dateFrom)
     if (filters.value.dateTo) params.append('end_date', filters.value.dateTo)
     const data: any = await request.get(`/api/logs/operations?${params}`)
+    const userNameMap = new Map<number, string>()
+    for (const u of users.value) {
+      userNameMap.set(u.id, u.real_name)
+    }
     logs.value = (data.data || []).map((r: any) => ({
       ...r,
-      user_name: r.user_id ? String(r.user_id) : null,
+      user_name: r.user_id ? (userNameMap.get(r.user_id) || `用户${r.user_id}`) : null,
     }))
     total.value = data.total || 0
     totalPages.value = Math.ceil(total.value / 20) || 1
@@ -195,7 +199,8 @@ const fetchLogs = async () => {
 const fetchUsers = async () => {
   try {
     const data: any = await request.get('/api/accounts')
-    users.value = Array.isArray(data) ? data : (data.users || [])
+    const accounts = data.accounts || data || []
+    users.value = Array.isArray(accounts) ? accounts : []
   } catch (error) {
     console.error('获取用户列表失败:', error)
   }

@@ -159,10 +159,6 @@ async def upload_chat_file(
 async def chat_stream(body: ChatIn, request: Request, db: OrmSession = Depends(get_db),
                       user: m.User = Depends(current_user)):
     """SSE 流式答疑。首次提问需带上 course_id + 知识库。"""
-    # 处理 CORS 预检请求
-    if request.method == "OPTIONS":
-        return {}
-    
     question = body.question.strip()
     if not question:
         raise HTTPException(status_code=400, detail="问题不能为空")
