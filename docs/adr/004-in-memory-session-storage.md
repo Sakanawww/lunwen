@@ -2,7 +2,11 @@
 
 ## 状态
 
-已采纳
+**已废弃** — 已被 [ADR-008](008-use-redis-for-session-storage.md) 替代。
+
+本决策曾作为项目初期的会话存储选型，后因需要支持服务重启后会话持久化与多实例扩展，已迁移至 Redis（开发环境连接失败时降级为 fakeredis）。详见 ADR-008。以下内容保留以记录决策历史。
+
+---
 
 ## 上下文
 
@@ -64,5 +68,6 @@ def create_session(user_id, real_name, role):
 
 ## 相关文档
 
-- `app/core/session.py` - 会话管理实现
+- `app/core/session.py` - 会话管理实现（已迁移至 Redis）
 - `框架说明文档.md` - 第 4.4.3 节 会话管理
+- [ADR-008](008-use-redis-for-session-storage.md) - 替代本决策的 Redis 会话存储选型

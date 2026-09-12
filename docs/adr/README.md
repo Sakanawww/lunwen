@@ -8,10 +8,12 @@
 |------|------|------|
 | [ADR-001](001-use-langgraph-for-agent-orchestration.md) | 使用 LangGraph 而非纯 LangChain | 已采纳 |
 | [ADR-002](002-use-faiss-for-vector-storage.md) | 使用 FAISS 而非 Chroma | 已采纳 |
-| [ADR-003](003-use-jinja2-for-frontend.md) | 使用 Jinja2 而非 Vue/React | 已采纳 |
-| [ADR-004](004-in-memory-session-storage.md) | 使用内存态会话而非 Redis | 已采纳 |
+| [ADR-003](003-use-jinja2-for-frontend.md) | 使用 Jinja2 而非 Vue/React | **已废弃** (被 ADR-007 替代) |
+| [ADR-004](004-in-memory-session-storage.md) | 使用内存态会话而非 Redis | **已废弃** (被 ADR-008 替代) |
 | [ADR-005](005-multi-course-architecture.md) | 使用多课程架构支持 RBAC 权限 | 已采纳 |
 | [ADR-006](006-use-qwen-api.md) | 使用阿里云百炼 Qwen API | 已采纳 |
+| [ADR-007](007-use-vue3-spa-for-frontend.md) | 迁移至 Vue 3 SPA 前端 | 已采纳 |
+| [ADR-008](008-use-redis-for-session-storage.md) | 迁移至 Redis 会话存储 | 已采纳 |
 
 ## 背景
 
@@ -28,8 +30,8 @@
 | 向量库 | FAISS | 相似度检索 |
 | Embedding | Qwen-Embedding | 文本向量化 |
 | 大模型 | Qwen-Plus (阿里云百炼) | 云端 API |
-| 前端 | Jinja2 + 原生 JS | 模板渲染 |
-| 会话 | 内存态 (可选 Redis) | 用户会话管理 |
+| 前端 | Vue 3 + Vite + TypeScript + Pinia | 单页应用（SPA），见 ADR-007 |
+| 会话 | Redis (可降级内存态) | 用户会话管理 |
 
 ## 使用说明
 

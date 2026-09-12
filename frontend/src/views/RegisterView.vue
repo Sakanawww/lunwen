@@ -253,11 +253,13 @@ const handleRegister = async () => {
 }
 
 .brand-subtitle {
-  font-size: var(--text-base);
+  font-size: var(--text-lg);
   color: rgb(var(--paper));
-  opacity: 0.7;
+  opacity: 0.9;
   font-weight: var(--font-normal);
   line-height: 1.6;
+  margin-bottom: var(--space-6);
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
 }
 
 .brand-decoration {

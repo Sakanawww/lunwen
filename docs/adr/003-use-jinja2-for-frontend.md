@@ -2,7 +2,11 @@
 
 ## 状态
 
-已采纳
+**已废弃** — 已被 [ADR-007](007-use-vue3-spa-for-frontend.md) 替代。
+
+本决策曾作为项目初期的前端选型，后因系统功能演进（多角色路由、复杂状态管理、流式 SSE 答疑、ECharts 数据看板等）在 SSR 模板下维护成本过高，已于后续迁移至 Vue 3 SPA。详见 ADR-007。以下内容保留以记录决策历史。
+
+---
 
 ## 上下文
 
@@ -49,6 +53,7 @@
 
 ## 相关文档
 
-- `app/templates/` - Jinja2 模板目录
-- `app/static/` - 静态资源（CSS/JS）
+- ~~`app/templates/` - Jinja2 模板目录~~（已移除）
+- `app/static/` - 静态资源（CSS/JS，迁移后仅保留旧资源）
 - `框架说明文档.md` - 第 2.1 节 技术栈总览
+- [ADR-007](007-use-vue3-spa-for-frontend.md) - 替代本决策的 Vue 3 SPA 选型
