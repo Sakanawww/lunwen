@@ -237,20 +237,51 @@ def dashboard_overview(course_id: int, range: int = 30,
 
     stats = course_stats(course_id, db, user)
     total_students = stats["total_students"]
-    graded = stats["graded_count"] or 0
-    submission = stats["submission_count"] or 0
+
+    # 动态指标按所选时间范围过滤（选课人数为存量，不随时间变化）
+    since = datetime.now() - timedelta(days=range) if range > 0 else None
+    sub_q = (
+        db.query(func.count(m.Submission.id))
+        .join(m.Assignment, m.Submission.assignment_id == m.Assignment.id)
+        .filter(m.Assignment.course_id == course_id)
+    )
+    graded_q = (
+        db.query(func.count(m.GradingRecord.id))
+        .join(m.Submission, m.GradingRecord.submission_id == m.Submission.id)
+        .join(m.Assignment, m.Submission.assignment_id == m.Assignment.id)
+        .filter(m.Assignment.course_id == course_id)
+    )
+    avg_q = (
+        db.query(func.avg(m.GradingRecord.score))
+        .join(m.Submission, m.GradingRecord.submission_id == m.Submission.id)
+        .join(m.Assignment, m.Submission.assignment_id == m.Assignment.id)
+        .filter(m.Assignment.course_id == course_id)
+    )
+    chat_q = (
+        db.query(func.count(m.Message.id))
+        .join(m.Session, m.Message.session_id == m.Session.id)
+        .filter(m.Session.course_id == course_id)
+    )
+    if since is not None:
+        sub_q = sub_q.filter(m.Submission.submitted_at >= since)
+        graded_q = graded_q.filter(m.GradingRecord.graded_at >= since)
+        avg_q = avg_q.filter(m.GradingRecord.graded_at >= since)
+        chat_q = chat_q.filter(m.Message.created_at >= since)
+    range_submission = sub_q.scalar() or 0
+    range_graded = graded_q.scalar() or 0
+    range_avg = avg_q.scalar()
+    range_chat = chat_q.scalar() or 0
 
     metrics = {
         "total_students": total_students,
-        "submission_count": submission,
-        "graded_count": graded,
-        "avg_score": stats["avg_score"],
-        "chat_count": stats["chat_count"],
+        "submission_count": range_submission,
+        "graded_count": range_graded,
+        "avg_score": round(float(range_avg), 1) if range_avg is not None else None,
+        "chat_count": range_chat,
         "active_students": _active_students(db, course_id, range),
     }
 
-    # 作业完成情况：已完成/待提交/已逾期（近 range 天）
-    since = datetime.now() - timedelta(days=range)
+    # 作业完成情况：已完成/待提交/已逾期（全期存量）
     graded_done = (
         db.query(func.count(m.GradingRecord.id))
         .join(m.Submission, m.GradingRecord.submission_id == m.Submission.id)

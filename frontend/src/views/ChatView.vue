@@ -85,7 +85,12 @@
                 <i class="ri-file-line"></i>
                 <span class="msg-attachment-name">{{ message.attachment }}</span>
               </div>
-              <p class="message-text">{{ message.content }}</p>
+              <div
+                v-if="message.role === 'assistant'"
+                class="message-text md-body"
+                v-html="renderMarkdown(message.content)"
+              ></div>
+              <p v-else class="message-text">{{ message.content }}</p>
             </div>
             <!-- 溯源信息 -->
             <div v-if="message.sources && message.sources.length > 0" class="sources">
@@ -161,6 +166,8 @@
 
 <script setup lang="ts">
 import { ref, nextTick, onMounted } from 'vue'
+import { marked } from 'marked'
+import DOMPurify from 'dompurify'
 import { useCourseStore } from '@/stores/course.store'
 
 interface Message {
@@ -202,6 +209,12 @@ const DEBUG = import.meta.env.DEV
 
 const log = (...args: any[]) => {
   if (DEBUG) console.log('[Chat]', ...args)
+}
+
+/** AI 回复按 Markdown 渲染（GFM 表格/代码块），DOMPurify 消毒防 XSS */
+const renderMarkdown = (src: string): string => {
+  const html = marked.parse(src || '', { async: false }) as string
+  return DOMPurify.sanitize(html)
 }
 
 // 自动调整输入框高度
@@ -503,12 +516,19 @@ const loadMessages = async (sessionId: number) => {
     })
     if (!res.ok) throw new Error(`加载消息失败 (${res.status})`)
     const data = await res.json()
-    messages.value = data.map((m: any) => ({
-      role: m.role === 'user' ? 'user' : 'assistant',
-      content: m.content || '',
-      sources: Array.isArray(m.sources) ? m.sources : (m.sources ? JSON.parse(m.sources) : []),
-      attachment: m.attachment ? safeAttachmentName(m.attachment) : undefined,
-    }))
+    messages.value = data.map((m: any) => {
+      let sources: string[] = []
+      if (Array.isArray(m.sources)) sources = m.sources
+      else if (m.sources) {
+        try { sources = JSON.parse(m.sources) } catch { sources = [] }
+      }
+      return {
+        role: m.role === 'user' ? 'user' : 'assistant',
+        content: m.content || '',
+        sources,
+        attachment: m.attachment ? safeAttachmentName(m.attachment) : undefined,
+      }
+    })
     await scrollToBottom()
   } catch (e) {
     log('加载消息失败:', e)
@@ -854,6 +874,93 @@ onMounted(async () => {
   line-height: 1.6;
   white-space: pre-wrap;
   margin: 0;
+}
+
+// AI 回复 Markdown 正文
+.md-body {
+  white-space: normal;
+
+  > :first-child { margin-top: 0; }
+  > :last-child { margin-bottom: 0; }
+
+  h1, h2, h3, h4, h5, h6 {
+    margin: var(--space-4) 0 var(--space-2);
+    font-weight: var(--font-semibold);
+    color: var(--text-primary);
+    line-height: 1.4;
+  }
+
+  p { margin: var(--space-2) 0; }
+
+  ul, ol {
+    margin: var(--space-2) 0;
+    padding-left: 1.4em;
+  }
+
+  li { margin: var(--space-1) 0; }
+
+  blockquote {
+    margin: var(--space-2) 0;
+    padding: var(--space-2) var(--space-3);
+    border-left: 3px solid rgb(var(--green));
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+  }
+
+  code {
+    padding: 2px 6px;
+    background: rgba(var(--ink), 0.08);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+  }
+
+  pre {
+    margin: var(--space-2) 0;
+    padding: var(--space-3);
+    background: rgba(var(--ink), 0.06);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    overflow-x: auto;
+
+    code {
+      padding: 0;
+      background: transparent;
+      line-height: 1.5;
+    }
+  }
+
+  table {
+    margin: var(--space-2) 0;
+    border-collapse: collapse;
+    font-size: 0.92em;
+    display: block;
+    overflow-x: auto;
+    max-width: 100%;
+
+    th, td {
+      padding: var(--space-1) var(--space-3);
+      border: 1px solid var(--border);
+      text-align: left;
+    }
+
+    th {
+      background: var(--bg-tertiary);
+      font-weight: var(--font-semibold);
+    }
+  }
+
+  a {
+    color: rgb(var(--green));
+    text-decoration: underline;
+  }
+
+  hr {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: var(--space-3) 0;
+  }
 }
 
 // 消息附件标记
