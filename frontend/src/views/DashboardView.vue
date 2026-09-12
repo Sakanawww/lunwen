@@ -95,8 +95,8 @@
               v-for="tab in trendTabs"
               :key="tab.days"
               class="chart-tab"
-              :class="{ active: selectedTrendDays === tab.days }"
-              @click="selectedTrendDays = tab.days"
+              :class="{ active: Number(selectedTimeRange) === tab.days }"
+              @click="selectedTimeRange = String(tab.days)"
             >
               {{ tab.label }}
             </button>
@@ -203,7 +203,12 @@ const courseStore = useCourseStore()
 const isLoading = ref(false)
 const selectedCourseId = ref<number | null>(null)
 const selectedTimeRange = ref<string>('30')
-const selectedTrendDays = ref(7)
+
+// 趋势图粒度与时间范围下拉同源（'0' 表示全部）
+const trendDays = computed(() => {
+  const n = Number(selectedTimeRange.value)
+  return Number.isFinite(n) ? n : 30
+})
 
 // 指标数据
 const metrics = reactive<Metric>({
@@ -223,7 +228,8 @@ const courseOptions = computed(() => {
 const timeRangeOptions = [
   { value: '7', label: '最近 7 天' },
   { value: '30', label: '最近 30 天' },
-  { value: '90', label: '最近 90 天' }
+  { value: '90', label: '最近 90 天' },
+  { value: '0', label: '全部' }
 ]
 
 const trendTabs = [
@@ -251,7 +257,7 @@ const authHeaders = () => ({
   'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
 })
 
-/** 按趋势粒度切取子序列：把后端返回的趋势数据投影到「周/月/季/全部」标签体系 */
+/** 按所选时间范围切取子序列：把后端返回的趋势数据投影到当前范围 */
 const sliceTrend = (arr: number[], days: number): number[] => {
   const src = trendData.value
   if (!arr || arr.length === 0) return []
@@ -266,7 +272,7 @@ const sliceTrend = (arr: number[], days: number): number[] => {
 
 const trendLabels = computed<string[]>(() => {
   const src = trendData.value
-  const days = selectedTrendDays.value
+  const days = trendDays.value
   const n = src.labels.length
   if (n === 0) return []
   if (days <= 0) return [...src.labels]
@@ -277,9 +283,10 @@ const trendLabels = computed<string[]>(() => {
 // 初始化图表
 const initCharts = () => {
   const labels = trendLabels.value
-  const submissions = sliceTrend(trendData.value.submissions, selectedTrendDays.value)
-  const questions = sliceTrend(trendData.value.questions, selectedTrendDays.value)
-  const kb = sliceTrend(trendData.value.kb, selectedTrendDays.value)
+  const days = trendDays.value
+  const submissions = sliceTrend(trendData.value.submissions, days)
+  const questions = sliceTrend(trendData.value.questions, days)
+  const kb = sliceTrend(trendData.value.kb, days)
 
   // 学习趋势图（作业提交 / 答疑提问 / 知识库引用 三线）
   trendOption.value = {
@@ -415,7 +422,8 @@ const refreshData = async () => {
 const loadDashboardData = async () => {
   if (!selectedCourseId.value) return
   const courseId = selectedCourseId.value
-  const range = Number(selectedTimeRange.value) || 30
+  const parsed = Number(selectedTimeRange.value)
+  const range = Number.isFinite(parsed) ? parsed : 30
   try {
     const res = await fetch(`/api/dashboard/overview?course_id=${courseId}&range=${range}`, {
       method: 'GET',
@@ -489,16 +497,13 @@ watch(selectedCourseId, (newId) => {
   }
 })
 
-// 监听时间范围下拉变化：以新范围重新拉取看板数据
+// 监听时间范围变化（含图表快捷标签）：以新范围重新拉取看板数据并重绘
 watch(selectedTimeRange, () => {
   if (selectedCourseId.value) {
     loadDashboardData()
+  } else {
+    initCharts()
   }
-})
-
-// 监听趋势粒度切换：仅重绘图表，不重新请求数据
-watch(selectedTrendDays, () => {
-  initCharts()
 })
 
 onMounted(async () => {

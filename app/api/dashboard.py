@@ -147,22 +147,20 @@ def course_stats(course_id: int, db: OrmSession = Depends(get_db),
 
 
 def _active_students(db: OrmSession, course_id: int, days: int = 30):
-    """统计近期活跃学生数（有答疑消息或作业提交）。"""
-    since = datetime.now() - timedelta(days=days)
+    """统计近期活跃学生数（有答疑消息或作业提交）。days<=0 表示不限时间。"""
+    since = datetime.now() - timedelta(days=days) if days > 0 else None
     ids = set()
-    ids.update(
-        r[0] for r in db.query(m.Session.user_id)
-        .filter(m.Session.course_id == course_id,
-                m.Session.created_at >= since).all()
-        if r[0]
-    )
-    ids.update(
-        r[0] for r in db.query(m.Submission.student_id)
+    q1 = db.query(m.Session.user_id).filter(m.Session.course_id == course_id)
+    q2 = (
+        db.query(m.Submission.student_id)
         .join(m.Assignment, m.Submission.assignment_id == m.Assignment.id)
-        .filter(m.Assignment.course_id == course_id,
-                m.Submission.submitted_at >= since).all()
-        if r[0]
+        .filter(m.Assignment.course_id == course_id)
     )
+    if since is not None:
+        q1 = q1.filter(m.Session.created_at >= since)
+        q2 = q2.filter(m.Submission.submitted_at >= since)
+    ids.update(r[0] for r in q1.all() if r[0])
+    ids.update(r[0] for r in q2.all() if r[0])
     return len(ids)
 
 
