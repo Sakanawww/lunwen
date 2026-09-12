@@ -711,7 +711,10 @@ onMounted(async () => {
     }
 
     .session-item-del {
-      display: none;
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
       color: var(--text-muted);
       font-size: var(--text-base);
       padding: var(--space-1);
@@ -721,10 +724,6 @@ onMounted(async () => {
         color: var(--danger);
         background: var(--bg-tertiary);
       }
-    }
-
-    &:hover .session-item-del {
-      display: inline-block;
     }
   }
 }

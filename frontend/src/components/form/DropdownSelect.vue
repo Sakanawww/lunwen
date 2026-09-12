@@ -11,7 +11,9 @@
         {{ getLabel(modelValue) }}
       </span>
       <span v-else class="placeholder">{{ placeholder }}</span>
-      <ChevronDownIcon class="chevron" :class="{ rotated: isOpen }" />
+      <svg class="chevron" :class="{ rotated: isOpen }" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M4 6L8 10L12 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
     </button>
 
     <Teleport to="body">
@@ -31,7 +33,9 @@
               @click="select(option.value)"
             >
               <span class="option-label">{{ option.label }}</span>
-              <CheckIcon v-if="modelValue === option.value" class="check-icon" />
+              <svg v-if="modelValue === option.value" class="check-icon" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M13 4L6 11L3 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
             </div>
           </div>
         </div>
@@ -99,7 +103,7 @@ const updatePopperPosition = () => {
 
 onClickOutside(popperRef, () => {
   isOpen.value = false
-})
+}, { ignore: [triggerRef] })
 
 onMounted(() => {
   window.addEventListener('scroll', updatePopperPosition, true)
@@ -110,25 +114,6 @@ onUnmounted(() => {
   window.removeEventListener('scroll', updatePopperPosition, true)
   window.removeEventListener('resize', updatePopperPosition)
 })
-</script>
-
-<script lang="ts">
-// 图标组件 - 使用 SVG 内联
-const ChevronDownIcon = {
-  template: `
-    <svg class="chevron-icon" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M4 6L8 10L12 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>
-  `
-}
-
-const CheckIcon = {
-  template: `
-    <svg class="check-icon-svg" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M13 4L6 11L3 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>
-  `
-}
 </script>
 
 <style lang="scss" scoped>
