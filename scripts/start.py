@@ -44,9 +44,9 @@ PROCESSES = {
     },
     "frontend": {
         "name": "前端服务 (Vite)",
-        "command": ["npm.cmd", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5173"]
+        "command": ["npm.cmd", "run", "dev"]
         if sys.platform == "win32"
-        else ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5173"],
+        else ["npm", "run", "dev"],
         "cwd": str(BASE_DIR / "frontend"),
         "env": {**os.environ},
     }
@@ -165,7 +165,8 @@ def start_process(name: str, daemon: bool = False):
         print(f"  {config['name']} 已在运行 (PID: {existing_pid})")
         return existing_pid
     
-    # 准备日志文件
+    # 准备日志文件（直接重定向 stdout，避免 PIPE 在 npm.cmd 退出后
+    # 导致 node.exe 子进程写入 broken pipe 而崩溃）
     log_fh = open(log_file, "a", encoding="utf-8")
     
     # 启动进程
@@ -181,13 +182,11 @@ def start_process(name: str, daemon: bool = False):
                 config["command"],
                 cwd=config["cwd"],
                 env=config["env"],
-                stdout=subprocess.PIPE,
+                stdout=log_fh,
                 stderr=subprocess.STDOUT,
+                stdin=subprocess.DEVNULL,
                 startupinfo=startupinfo,
                 creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
-                # Windows 上使用 universal_newlines 和 errors 处理编码
-                universal_newlines=True,
-                errors="replace",
             )
         else:
             # Linux/Mac: 使用 preexec_fn 创建新进程组
@@ -195,11 +194,10 @@ def start_process(name: str, daemon: bool = False):
                 config["command"],
                 cwd=config["cwd"],
                 env=config["env"],
-                stdout=subprocess.PIPE,
+                stdout=log_fh,
                 stderr=subprocess.STDOUT,
+                stdin=subprocess.DEVNULL,
                 preexec_fn=os.setsid if not daemon else None,
-                # Linux 上使用 errors 处理编码
-                errors="replace",
             )
     except FileNotFoundError as e:
         log_fh.close()
@@ -210,31 +208,6 @@ def start_process(name: str, daemon: bool = False):
     # 写入 PID 文件
     pid_file.write_text(str(process.pid))
     print(f"  {config['name']} 已启动 (PID: {process.pid})")
-    
-    # 启动日志收集线程
-    import threading
-    
-    def collect_logs():
-        try:
-            while True:
-                line = process.stdout.readline()
-                if not line and process.poll() is not None:
-                    break
-                if line:
-                    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                    # universal_newlines=True 时 line 已经是字符串，不需要 decode
-                    log_text = line if isinstance(line, str) else line.decode('utf-8', errors='replace')
-                    log_fh.write(f"[{timestamp}] {log_text}")
-                    log_fh.flush()
-                    # 同时输出到控制台（可选）
-                    # print(f"[{name}] {log_text}", end="")
-        except Exception as e:
-            print(f"  日志收集错误：{e}")
-        finally:
-            log_fh.close()
-    
-    thread = threading.Thread(target=collect_logs, daemon=True)
-    thread.start()
     
     return process.pid
 
