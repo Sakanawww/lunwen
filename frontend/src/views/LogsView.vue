@@ -174,13 +174,19 @@ const fetchLogs = async () => {
   try {
     const params = new URLSearchParams({
       page: page.value.toString(),
-      size: '20',
-      ...filters.value,
+      page_size: '20',
     })
-    const data = await request.get(`/logs?${params}`)
-    logs.value = data.logs || []
+    if (filters.value.userId) params.append('user_id', filters.value.userId)
+    if (filters.value.action) params.append('action', filters.value.action)
+    if (filters.value.dateFrom) params.append('start_date', filters.value.dateFrom)
+    if (filters.value.dateTo) params.append('end_date', filters.value.dateTo)
+    const data: any = await request.get(`/api/logs/operations?${params}`)
+    logs.value = (data.data || []).map((r: any) => ({
+      ...r,
+      user_name: r.user_id ? String(r.user_id) : null,
+    }))
     total.value = data.total || 0
-    totalPages.value = Math.ceil(total.value / 20)
+    totalPages.value = Math.ceil(total.value / 20) || 1
   } catch (error) {
     console.error('获取日志失败:', error)
   }
@@ -188,8 +194,8 @@ const fetchLogs = async () => {
 
 const fetchUsers = async () => {
   try {
-    const data = await request.get('/accounts/users')
-    users.value = data.users || []
+    const data: any = await request.get('/api/accounts')
+    users.value = Array.isArray(data) ? data : (data.users || [])
   } catch (error) {
     console.error('获取用户列表失败:', error)
   }

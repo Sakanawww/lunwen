@@ -91,8 +91,8 @@
             <tr v-for="doc in documents" :key="doc.id">
               <td class="td-mono">{{ doc.id }}</td>
               <td>{{ doc.title }}</td>
-              <td><span class="badge">{{ doc.chunkNum }} 块</span></td>
-              <td class="td-mono">{{ formatDateTime(doc.createdAt) }}</td>
+              <td><span class="badge">{{ doc.chunk_num }} 块</span></td>
+              <td class="td-mono">{{ formatDateTime(doc.created_at) }}</td>
               <td class="num">
                 <div class="doc-actions">
                   <button
@@ -137,7 +137,7 @@
           </button>
         </div>
         <div class="preview-meta" v-if="previewDoc">
-          {{ previewDoc.fileName }} · {{ previewDoc.chunkNum }} 个知识块
+          {{ previewDoc.title }} · {{ previewDoc.chunk_num }} 个知识块
         </div>
         <div class="preview-body">
           <div v-if="previewLoading" class="preview-loading">
@@ -174,16 +174,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import DropdownSelect from '@/components/form/DropdownSelect.vue'
 import { useCourseStore } from '@/stores/course.store'
+import { api } from '@/utils/request'
 
 interface Document {
   id: number
   title: string
-  fileName: string
-  chunkNum: number
-  createdAt: string
+  chunk_num: number
+  created_at: string
 }
 
 interface Chunk {
@@ -193,7 +193,6 @@ interface Chunk {
 
 const courseStore = useCourseStore()
 
-// 状态
 const selectedCourseId = ref<number | null>(null)
 const selectedFile = ref<File | null>(null)
 const isDragover = ref(false)
@@ -202,21 +201,17 @@ const uploadMessage = ref('')
 const uploadSuccess = ref(false)
 const fileInputRef = ref<HTMLInputElement | null>(null)
 
-// 文档列表
 const documents = ref<Document[]>([])
 
-// 预览弹窗
 const showPreviewModal = ref(false)
 const previewDoc = ref<Document | null>(null)
 const previewLoading = ref(false)
 const previewChunks = ref<Chunk[]>([])
 
-// 选项
 const courseOptions = computed(() => {
   return courseStore.courses.map(c => ({ value: c.id, label: c.name }))
 })
 
-// 方法
 const triggerFileInput = () => {
   fileInputRef.value?.click()
 }
@@ -228,17 +223,9 @@ const handleFileChange = (event: Event) => {
   }
 }
 
-const handleDragEnter = () => {
-  isDragover.value = true
-}
-
-const handleDragOver = () => {
-  isDragover.value = true
-}
-
-const handleDragLeave = () => {
-  isDragover.value = false
-}
+const handleDragEnter = () => { isDragover.value = true }
+const handleDragOver = () => { isDragover.value = true }
+const handleDragLeave = () => { isDragover.value = false }
 
 const handleDrop = (event: DragEvent) => {
   isDragover.value = false
@@ -249,7 +236,8 @@ const handleDrop = (event: DragEvent) => {
 
 const handleSubmit = async () => {
   if (!selectedFile.value || !selectedCourseId.value) {
-    showToast('请先选择文件和课程', 'error')
+    uploadSuccess.value = false
+    uploadMessage.value = '请先选择文件和课程'
     return
   }
 
@@ -257,17 +245,16 @@ const handleSubmit = async () => {
   uploadMessage.value = ''
 
   try {
-    // TODO: 调用 API 上传文件
-    await new Promise(resolve => setTimeout(resolve, 1500))
-    
+    const formData = new FormData()
+    formData.append('file', selectedFile.value)
+    formData.append('course_id', String(selectedCourseId.value))
+
+    await api.upload('/api/kb/upload', formData)
     uploadSuccess.value = true
     uploadMessage.value = `上传成功：${selectedFile.value.name}，已加入知识库`
     selectedFile.value = null
-    if (fileInputRef.value) {
-      fileInputRef.value.value = ''
-    }
-    
-    // 刷新文档列表
+    if (fileInputRef.value) fileInputRef.value.value = ''
+
     await loadDocuments()
   } catch (error) {
     uploadSuccess.value = false
@@ -278,31 +265,19 @@ const handleSubmit = async () => {
 }
 
 const loadDocuments = async () => {
-  // TODO: 调用 API 加载文档列表
-  // 模拟数据
-  documents.value = [
-    {
-      id: 1,
-      title: '机器学习基础',
-      fileName: 'ml_basics.pdf',
-      chunkNum: 24,
-      createdAt: '2026-09-08 14:30:00'
-    },
-    {
-      id: 2,
-      title: 'Python 编程指南',
-      fileName: 'python_guide.md',
-      chunkNum: 18,
-      createdAt: '2026-09-07 10:15:00'
-    },
-    {
-      id: 3,
-      title: '数据库原理笔记',
-      fileName: 'db_notes.txt',
-      chunkNum: 12,
-      createdAt: '2026-09-06 16:45:00'
-    }
-  ]
+  if (!selectedCourseId.value) return
+  try {
+    const data: any = await api.get(`/api/kb/docs/${selectedCourseId.value}`)
+    documents.value = (Array.isArray(data) ? data : []).map((d: any) => ({
+      id: d.id,
+      title: d.title,
+      chunk_num: d.chunk_num ?? d.chunkNum ?? 0,
+      created_at: d.created_at ?? d.createdAt ?? '',
+    }))
+  } catch (error) {
+    console.error('获取文档列表失败:', error)
+    documents.value = []
+  }
 }
 
 const openPreview = async (doc: Document) => {
@@ -312,16 +287,14 @@ const openPreview = async (doc: Document) => {
   previewChunks.value = []
 
   try {
-    // TODO: 调用 API 获取文档预览
-    await new Promise(resolve => setTimeout(resolve, 800))
-    
-    previewChunks.value = [
-      { seq: 1, content: '这是第一个知识块的内容示例。机器学习是人工智能的一个分支，它使计算机能够从数据中学习而不需要显式编程。' },
-      { seq: 2, content: '这是第二个知识块的内容示例。监督学习需要标记的训练数据，常见的算法包括线性回归、逻辑回归、决策树等。' },
-      { seq: 3, content: '这是第三个知识块的内容示例。无监督学习处理未标记的数据，用于聚类、降维等任务。' }
-    ]
+    const data: any = await api.get(`/api/kb/doc/${doc.id}/preview`)
+    previewChunks.value = (data.chunks || data.segments || []).map((c: any, i: number) => ({
+      seq: c.seq ?? i + 1,
+      content: c.content || c.text || '',
+    }))
   } catch (error) {
     console.error('加载预览失败:', error)
+    previewChunks.value = []
   } finally {
     previewLoading.value = false
   }
@@ -334,33 +307,29 @@ const closePreview = () => {
 }
 
 const deleteDocument = async (doc: Document) => {
-  if (!confirm(`确定要删除文档"${doc.title}"吗？`)) {
-    return
-  }
-
+  if (!confirm(`确定要删除文档"${doc.title}"吗？`)) return
   try {
-    // TODO: 调用 API 删除文档
+    await api.delete(`/api/kb/doc/${doc.id}`)
     documents.value = documents.value.filter(d => d.id !== doc.id)
-    showToast('文档已删除', 'success')
+    uploadSuccess.value = true
+    uploadMessage.value = '文档已删除'
   } catch (error) {
-    showToast('删除失败', 'error')
+    uploadSuccess.value = false
+    uploadMessage.value = '删除失败'
   }
 }
 
 const formatDateTime = (dateStr: string) => {
-  return dateStr.replace(' ', '\n')
+  return dateStr ? dateStr.replace('T', ' ').replace(' ', '\n') : '—'
 }
 
-const showToast = (message: string, type: 'success' | 'error') => {
-  console.log(`[${type}] ${message}`)
-}
+watch(selectedCourseId, () => {
+  if (selectedCourseId.value) loadDocuments()
+})
 
 onMounted(() => {
-  loadDocuments()
-  
-  // 初始化选中课程
   if (courseStore.courses.length > 0) {
-    selectedCourseId.value = courseStore.activeCourseId || courseStore.courses[0].id
+    selectedCourseId.value = courseStore.currentCourseId || courseStore.courses[0].id
   }
 })
 </script>

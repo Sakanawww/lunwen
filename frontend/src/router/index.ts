@@ -69,11 +69,13 @@ const routes: RouteRecordRaw[] = [
         path: 'practice',
         name: 'Practice',
         component: () => import('@/views/PracticeView.vue'),
+        meta: { roles: ['student', 'teacher', 'admin'] },
       },
       {
         path: 'courses',
         name: 'Courses',
         component: () => import('@/views/CoursesView.vue'),
+        meta: { roles: ['student', 'teacher', 'admin'] },
       },
       {
         path: 'admin',

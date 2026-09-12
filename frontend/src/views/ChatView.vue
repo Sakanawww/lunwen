@@ -197,8 +197,8 @@ const pendingAttachment = ref<AttachmentInfo | null>(null)
 const messagesContainer = ref<HTMLElement | null>(null)
 const inputRef = ref<HTMLTextAreaElement | null>(null)
 
-// 调试模式
-const DEBUG = true
+// 调试模式（仅开发环境）
+const DEBUG = import.meta.env.DEV
 
 const log = (...args: any[]) => {
   if (DEBUG) console.log('[Chat]', ...args)
@@ -382,7 +382,13 @@ const handleSend = async () => {
               sources = parsed.sources || []
               log('收到元数据，来源数量:', sources.length)
             }
-            
+
+            // 处理 session_id 回传（后端新建会话后回传，用于多轮上下文）
+            if (parsed.session_id) {
+              currentSessionId.value = parsed.session_id
+              log('收到 session_id:', parsed.session_id)
+            }
+
             // 处理 token 流
             if (parsed.token) {
               fullContent += parsed.token

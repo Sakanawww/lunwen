@@ -399,6 +399,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { api } from '@/utils/request'
 
 interface User {
   id: number
@@ -483,64 +484,63 @@ const filteredLogs = computed(() => {
 
 // 方法
 const loadStats = async () => {
-  stats.value = {
-    totalUsers: 45,
-    totalTeachers: 8,
-    totalStudents: 35,
-    totalCourses: 5,
-    totalQuestions: 128,
-    totalDocuments: 256
+  try {
+    const data: any = await api.get('/api/accounts')
+    const accounts = data.accounts || data || []
+    const users = Array.isArray(accounts) ? accounts : []
+    stats.value.totalUsers = users.length
+    stats.value.totalTeachers = users.filter((u: any) => u.role === 'teacher').length
+    stats.value.totalStudents = users.filter((u: any) => u.role === 'student').length
+    try {
+      const courses: any = await api.get('/api/courses')
+      const c = Array.isArray(courses) ? courses : (courses.courses || [])
+      stats.value.totalCourses = c.length
+    } catch { stats.value.totalCourses = 0 }
+    try {
+      const docs: any = await api.get('/api/kb/docs/1')
+      stats.value.totalDocuments = (Array.isArray(docs) ? docs : []).length
+    } catch { stats.value.totalDocuments = 0 }
+    try {
+      const q: any = await api.get('/api/question/list/1', { params: { page: 1, size: 1 } })
+      stats.value.totalQuestions = q.total || (Array.isArray(q) ? q.length : 0)
+    } catch { stats.value.totalQuestions = 0 }
+  } catch (error) {
+    console.error('加载统计失败:', error)
   }
 }
 
 const loadUsers = async () => {
-  users.value = [
-    {
-      id: 1,
-      username: 'admin',
-      real_name: '系统管理员',
-      role: 'admin',
+  try {
+    const data: any = await api.get('/api/accounts')
+    const accounts = data.accounts || data || []
+    users.value = (Array.isArray(accounts) ? accounts : []).map((u: any) => ({
+      id: u.id,
+      username: u.username,
+      real_name: u.real_name,
+      role: u.role,
       is_active: true,
-      created_at: '2024-01-01T00:00:00Z'
-    },
-    {
-      id: 2,
-      username: 'teacher1',
-      real_name: '张老师',
-      role: 'teacher',
-      is_active: true,
-      created_at: '2024-01-15T08:30:00Z'
-    },
-    {
-      id: 3,
-      username: 'student1',
-      real_name: '李明',
-      role: 'student',
-      is_active: true,
-      created_at: '2024-02-01T10:00:00Z'
-    },
-    {
-      id: 4,
-      username: 'student2',
-      real_name: '王芳',
-      role: 'student',
-      is_active: false,
-      created_at: '2024-02-01T10:05:00Z'
-    }
-  ]
+      created_at: u.created_at || '',
+    }))
+  } catch (error) {
+    console.error('加载用户列表失败:', error)
+    users.value = []
+  }
 }
 
 const loadLogs = async () => {
-  logs.value = [
-    { id: 1, timestamp: '2024-09-09T10:30:00Z', level: 'INFO', message: '系统启动成功' },
-    { id: 2, timestamp: '2024-09-09T10:31:00Z', level: 'INFO', message: '数据库连接成功' },
-    { id: 3, timestamp: '2024-09-09T10:32:00Z', level: 'INFO', message: '用户 admin 登录' },
-    { id: 4, timestamp: '2024-09-09T10:35:00Z', level: 'WARNING', message: '磁盘使用率超过 60%' },
-    { id: 5, timestamp: '2024-09-09T10:40:00Z', level: 'INFO', message: '知识库文档上传：数据结构.pdf' },
-    { id: 6, timestamp: '2024-09-09T10:45:00Z', level: 'ERROR', message: 'LLM API 调用失败：超时' },
-    { id: 7, timestamp: '2024-09-09T10:46:00Z', level: 'INFO', message: '重试 LLM API 调用成功' },
-    { id: 8, timestamp: '2024-09-09T10:50:00Z', level: 'INFO', message: '作业批改完成：submission_123' }
-  ]
+  try {
+    const data: any = await api.get('/api/logs/operations', { params: { page: 1, page_size: 50 } })
+    const items = data.data || []
+    logs.value = items.map((r: any) => ({
+      id: r.id,
+      timestamp: r.created_at || '',
+      level: r.status === 'error' ? 'ERROR' : 'INFO',
+      message: `${r.action}${r.detail ? '：' + r.detail : ''}`,
+    }))
+  } catch (error) {
+    console.error('加载日志失败:', error)
+    logs.value = []
+  }
 }
 
 const editUser = (user: User) => {
@@ -556,24 +556,44 @@ const editUser = (user: User) => {
 }
 
 const saveUser = async () => {
-  console.log('保存用户:', userForm.value)
-  showUserModal.value = false
-  editingUser.value = null
+  try {
+    if (editingUser.value) {
+      await api.put(`/api/accounts/${editingUser.value.id}`, {
+        real_name: userForm.value.real_name,
+        role: userForm.value.role,
+      })
+    } else {
+      await api.post('/api/accounts', {
+        username: userForm.value.username,
+        password: userForm.value.password,
+        real_name: userForm.value.real_name,
+        role: userForm.value.role,
+      })
+    }
+    showUserModal.value = false
+    editingUser.value = null
+    await loadUsers()
+  } catch (error) {
+    console.error('保存用户失败:', error)
+    alert('保存失败，请检查权限或网络')
+  }
 }
 
 const toggleUserStatus = async (user: User) => {
-  user.is_active = !user.is_active
-  console.log(`用户 ${user.username} 状态已${user.is_active ? '启用' : '禁用'}`)
+  try {
+    await api.put(`/api/accounts/${user.id}`, { is_active: !user.is_active })
+    user.is_active = !user.is_active
+  } catch (error) {
+    console.error('切换状态失败:', error)
+  }
 }
 
 const saveLLMSettings = async () => {
-  console.log('保存 LLM 配置:', llmSettings.value)
-  alert('LLM 配置已保存')
+  alert('LLM 配置请通过 .env 环境变量修改，修改后重启服务生效')
 }
 
 const saveSystemSettings = async () => {
-  console.log('保存系统配置:', systemSettings.value)
-  alert('系统配置已保存')
+  alert('系统配置请通过 .env 环境变量修改，修改后重启服务生效')
 }
 
 const formatDate = (dateStr: string) => {

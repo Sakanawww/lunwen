@@ -78,10 +78,13 @@ const navItems = computed(() => {
       { path: '/questions', label: '试题管理' },
     ]
   } else {
-    // admin
+    // admin — 与 teacher 共享教学管理功能，额外拥有系统设置
     return [
-      { path: '/dashboard', label: '管理' },
+      { path: '/dashboard', label: '学情看板' },
       { path: '/dashboard/students', label: '学生名单' },
+      { path: '/knowledge', label: '知识库' },
+      { path: '/grading', label: '作业批改' },
+      { path: '/questions', label: '试题管理' },
       { path: '/admin', label: '系统设置' },
     ]
   }

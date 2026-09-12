@@ -220,6 +220,7 @@ async def chat_stream(body: ChatIn, request: Request, db: OrmSession = Depends(g
         full = ""
         final_sources = []
         final_text = ""
+        _sent_session_id = False
         _it = agent.stream(question, history)
         while True:
             try:
@@ -230,6 +231,10 @@ async def chat_stream(body: ChatIn, request: Request, db: OrmSession = Depends(g
                 # 若 LLM 流中途抛错，回退为通用错误信息
                 yield f"data: {json.dumps({'token': f'（答疑出现异常：{_e}）'}, ensure_ascii=False)}\n\n"
                 break
+            # 首帧：回传 session_id 供前端绑定多轮上下文
+            if not _sent_session_id:
+                _sent_session_id = True
+                yield f"data: {json.dumps({'session_id': sess_id}, ensure_ascii=False)}\n\n"
             # 末尾元数据帧：以特殊前缀标记，避免与正文 token 冲突
             if token.startswith("__META__"):
                 try:

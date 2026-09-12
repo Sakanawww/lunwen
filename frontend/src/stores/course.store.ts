@@ -163,50 +163,6 @@ export const useCourseStore = defineStore('course', () => {
     }
   }
 
-  /**
-   * 获取模拟课程数据（用于开发/测试）
-   */
-  function getMockCourses(): CourseWithTeacher[] {
-    return [
-      { 
-        id: 1, 
-        name: '计算机科学基础', 
-        code: 'CS101', 
-        teacher_id: 1, 
-        teacher_name: '张老师',
-        student_count: 42,
-        created_at: '2024-01-01T00:00:00Z' 
-      },
-      { 
-        id: 2, 
-        name: '数据结构与算法', 
-        code: 'CS201', 
-        teacher_id: 1, 
-        teacher_name: '张老师',
-        student_count: 38,
-        created_at: '2024-01-01T00:00:00Z' 
-      },
-      { 
-        id: 3, 
-        name: '数据库原理', 
-        code: 'CS301', 
-        teacher_id: 2, 
-        teacher_name: '李老师',
-        student_count: 35,
-        created_at: '2024-01-01T00:00:00Z' 
-      },
-      { 
-        id: 4, 
-        name: '机器学习基础', 
-        code: 'CS401', 
-        teacher_id: 3, 
-        teacher_name: '王老师',
-        student_count: 28,
-        created_at: '2024-01-01T00:00:00Z' 
-      }
-    ]
-  }
-
   // ========== 初始化 ==========
   
   // 恢复本地存储的课程选择

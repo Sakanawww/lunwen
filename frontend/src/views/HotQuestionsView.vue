@@ -57,16 +57,8 @@
           <div class="question-content">
             <div class="question-text">{{ q.text }}</div>
             <div class="question-meta">
-              <span><i class="ri-user-line"></i> {{ q.studentCount }}人提问</span>
-              <span><i class="ri-chat-1-line"></i> {{ q.replyCount }}条回复</span>
-              <span class="question-trend" :class="q.trend > 0 ? 'up' : 'down'">
-                <i :class="q.trend > 0 ? 'ri-arrow-up-line' : 'ri-arrow-down-line'"></i>
-                {{ Math.abs(q.trend) }}%
-              </span>
+              <span><i class="ri-chat-1-line"></i> {{ q.count }} 次提问</span>
             </div>
-          </div>
-          <div class="question-tags">
-            <span class="tag" :class="getCategoryTag(q.category)">{{ q.category }}</span>
           </div>
         </div>
         <div v-if="filteredQuestions.length === 0" class="empty-state">
@@ -79,23 +71,23 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import DropdownSelect from '@/components/form/DropdownSelect.vue'
 import { useCourseStore } from '@/stores/course.store'
+import { api } from '@/utils/request'
 
 interface HotQuestion {
-  id: number
+  rank: number
   text: string
-  studentCount: number
-  replyCount: number
-  trend: number
-  category: string
+  count: number
 }
 
 const courseStore = useCourseStore()
 
 const selectedCourseId = ref<number | null>(null)
 const selectedTimeRange = ref<string>('30')
+const loading = ref(false)
+const questions = ref<HotQuestion[]>([])
 
 const courseOptions = computed(() => {
   return courseStore.courses.map(c => ({ value: c.id, label: c.name }))
@@ -107,61 +99,42 @@ const timeRangeOptions = [
   { value: '90', label: '最近 90 天' }
 ]
 
-const allQuestions: HotQuestion[] = [
-  { id: 1, text: '如何理解机器学习中的过拟合问题？', studentCount: 12, replyCount: 8, trend: 15, category: '机器学习' },
-  { id: 2, text: 'Python 装饰器的使用场景有哪些？', studentCount: 9, replyCount: 5, trend: 8, category: 'Python' },
-  { id: 3, text: '数据库索引的原理是什么？', studentCount: 7, replyCount: 4, trend: -3, category: '数据库' },
-  { id: 4, text: '如何优化神经网络的训练速度？', studentCount: 6, replyCount: 6, trend: 22, category: '深度学习' },
-  { id: 5, text: 'RESTful API 设计规范', studentCount: 5, replyCount: 3, trend: 5, category: '后端开发' },
-  { id: 6, text: 'Git 分支管理策略', studentCount: 4, replyCount: 2, trend: -8, category: '工具' },
-  { id: 7, text: 'Docker 容器化部署流程', studentCount: 4, replyCount: 3, trend: 12, category: 'DevOps' },
-  { id: 8, text: 'Vue3 组合式 API 优势', studentCount: 3, replyCount: 2, trend: 0, category: '前端' },
-  { id: 9, text: '什么是闭包？如何使用？', studentCount: 8, replyCount: 4, trend: 10, category: 'JavaScript' },
-  { id: 10, text: 'HTTP 和 HTTPS 的区别', studentCount: 6, replyCount: 3, trend: 5, category: '网络' },
-  { id: 11, text: '快速排序的实现原理', studentCount: 5, replyCount: 2, trend: -2, category: '算法' },
-  { id: 12, text: 'React Hooks 使用注意事项', studentCount: 4, replyCount: 3, trend: 8, category: '前端' },
-  { id: 13, text: 'MySQL 事务隔离级别', studentCount: 4, replyCount: 2, trend: 3, category: '数据库' },
-  { id: 14, text: 'Linux 常用命令总结', studentCount: 3, replyCount: 1, trend: -5, category: '操作系统' },
-  { id: 15, text: 'TCP 三次握手过程', studentCount: 3, replyCount: 2, trend: 0, category: '网络' },
-  { id: 16, text: 'Webpack 打包优化策略', studentCount: 2, replyCount: 1, trend: 15, category: '前端' },
-  { id: 17, text: 'Redis 缓存穿透解决方案', studentCount: 2, replyCount: 2, trend: 8, category: '数据库' },
-  { id: 18, text: '微服务架构的优缺点', studentCount: 2, replyCount: 1, trend: -3, category: '架构' },
-  { id: 19, text: 'JWT 认证原理', studentCount: 1, replyCount: 1, trend: 5, category: '安全' },
-  { id: 20, text: 'GraphQL 与 REST 对比', studentCount: 1, replyCount: 0, trend: 2, category: 'API' }
-]
+const filteredQuestions = computed(() => questions.value)
 
-const filteredQuestions = computed(() => {
-  return allQuestions.slice(0, 20)
-})
-
-const getCategoryTag = (category: string) => {
-  const map: Record<string, string> = {
-    '机器学习': 'tag-ml',
-    'Python': 'tag-py',
-    '数据库': 'tag-db',
-    '深度学习': 'tag-dl',
-    '后端开发': 'tag-backend',
-    '工具': 'tag-tool',
-    'DevOps': 'tag-devops',
-    '前端': 'tag-frontend',
-    'JavaScript': 'tag-js',
-    '网络': 'tag-net',
-    '算法': 'tag-algo',
-    '操作系统': 'tag-os',
-    '架构': 'tag-arch',
-    '安全': 'tag-security',
-    'API': 'tag-api'
+const fetchQuestions = async () => {
+  if (!selectedCourseId.value) return
+  loading.value = true
+  try {
+    const data: any = await api.get(`/api/dashboard/${selectedCourseId.value}/hot-questions`, {
+      params: { limit: 20 }
+    })
+    questions.value = data.items || []
+  } catch (error) {
+    console.error('获取热门问题失败:', error)
+    questions.value = []
+  } finally {
+    loading.value = false
   }
-  return map[category] || ''
 }
 
 const exportQuestions = () => {
-  console.log('导出热门问题报告')
+  const headers = ['排名', '问题', '提问次数']
+  const rows = questions.value.map(q => [q.rank, q.text, q.count])
+  const csvContent = [headers.join(','), ...rows.map(r => r.map(c => `"${c}"`).join(','))].join('\n')
+  const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' })
+  const link = document.createElement('a')
+  link.href = URL.createObjectURL(blob)
+  link.download = `热门问题_${new Date().toLocaleDateString('zh-CN')}.csv`
+  link.click()
 }
+
+watch([selectedCourseId, selectedTimeRange], () => {
+  if (selectedCourseId.value) fetchQuestions()
+})
 
 onMounted(() => {
   if (courseStore.courses.length > 0) {
-    selectedCourseId.value = courseStore.activeCourseId || courseStore.courses[0].id
+    selectedCourseId.value = courseStore.currentCourseId || courseStore.courses[0].id
   }
 })
 </script>

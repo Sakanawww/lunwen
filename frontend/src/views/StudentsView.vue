@@ -81,39 +81,23 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="student in filteredStudents" :key="student.id">
-              <td class="td-mono">{{ student.studentNo }}</td>
+            <tr v-for="student in filteredStudents" :key="student.user_id">
+              <td class="td-mono">{{ student.student_no || '—' }}</td>
               <td>
                 <div class="student-name">
-                  <div class="avatar">{{ student.name.charAt(0) }}</div>
-                  <span>{{ student.name }}</span>
+                  <div class="avatar">{{ student.real_name.charAt(0) }}</div>
+                  <span>{{ student.real_name }}</span>
                 </div>
               </td>
-              <td class="td-mono">{{ student.email }}</td>
+              <td class="td-mono">{{ student.username }}</td>
+              <td>{{ student.submissions }}</td>
               <td>
-                <div class="progress-cell">
-                  <div class="progress-bar">
-                    <div class="progress-fill" :style="{ width: student.submissionRate + '%' }"></div>
-                  </div>
-                  <span class="progress-text">{{ student.submissionCount }}/{{ totalAssignments }}</span>
-                </div>
-              </td>
-              <td>
-                <span class="score-badge" :class="getScoreClass(student.avgScore)">
-                  {{ student.avgScore }}
+                <span class="score-badge" :class="getScoreClass(student.accuracy)">
+                  {{ student.accuracy !== null ? (student.accuracy * 100).toFixed(0) + '%' : '—' }}
                 </span>
               </td>
-              <td>
-                <span class="activity-badge" :class="getActivityClass(student.activity)">
-                  <i class="ri-fire-line"></i>
-                  {{ student.activity }}
-                </span>
-              </td>
-              <td>
-                <span class="status-badge" :class="student.status === 'active' ? 'status-active' : 'status-inactive'">
-                  {{ student.status === 'active' ? '正常' : '未激活' }}
-                </span>
-              </td>
+              <td>{{ student.practice_count }}</td>
+              <td>{{ student.questions }}</td>
               <td>
                 <button class="btn btn-secondary btn-sm" @click="viewDetail(student)">
                   <i class="ri-eye-line"></i>
@@ -124,7 +108,7 @@
             <tr v-if="filteredStudents.length === 0">
               <td colspan="8" class="empty-state">
                 <i class="ri-inbox-line"></i>
-                <p>暂无学生数据</p>
+                <p>{{ loading ? '加载中…' : '暂无学生数据' }}</p>
               </td>
             </tr>
           </tbody>
@@ -135,145 +119,114 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import DropdownSelect from '@/components/form/DropdownSelect.vue'
 import { useCourseStore } from '@/stores/course.store'
+import { api } from '@/utils/request'
 
 interface Student {
-  id: number
-  studentNo: string
-  name: string
-  email: string
-  submissionCount: number
-  submissionRate: number
-  avgScore: number
-  activity: number
-  status: 'active' | 'inactive'
+  user_id: number
+  username: string
+  real_name: string
+  student_no: string
+  class_name: string
+  submissions: number
+  graded: number
+  practice_count: number
+  accuracy: number | null
+  questions: number
 }
 
 const courseStore = useCourseStore()
 
 const selectedCourseId = ref<number | null>(null)
 const searchQuery = ref('')
-
-// 不同课程的学生数据
-const courseStudentsMap: Record<number, Student[]> = {
-  1: [ // 计算机科学基础
-    { id: 1, studentNo: '2021001', name: '张三', email: 'zhangsan@example.com', submissionCount: 8, submissionRate: 100, avgScore: 92, activity: 95, status: 'active' },
-    { id: 2, studentNo: '2021002', name: '李四', email: 'lisi@example.com', submissionCount: 7, submissionRate: 88, avgScore: 85, activity: 78, status: 'active' },
-    { id: 3, studentNo: '2021003', name: '王五', email: 'wangwu@example.com', submissionCount: 6, submissionRate: 75, avgScore: 78, activity: 65, status: 'active' },
-    { id: 4, studentNo: '2021004', name: '赵六', email: 'zhaoliu@example.com', submissionCount: 8, submissionRate: 100, avgScore: 88, activity: 82, status: 'active' },
-    { id: 5, studentNo: '2021005', name: '钱七', email: 'qianqi@example.com', submissionCount: 5, submissionRate: 63, avgScore: 72, activity: 45, status: 'inactive' },
-    { id: 6, studentNo: '2021006', name: '孙八', email: 'sunba@example.com', submissionCount: 7, submissionRate: 88, avgScore: 90, activity: 88, status: 'active' },
-    { id: 7, studentNo: '2021007', name: '周九', email: 'zhoujiu@example.com', submissionCount: 8, submissionRate: 100, avgScore: 95, activity: 92, status: 'active' },
-    { id: 8, studentNo: '2021008', name: '吴十', email: 'wushi@example.com', submissionCount: 4, submissionRate: 50, avgScore: 65, activity: 35, status: 'inactive' },
-  ],
-  2: [ // 数据结构与算法
-    { id: 1, studentNo: '2021009', name: '郑一', email: 'zhengyi@example.com', submissionCount: 7, submissionRate: 88, avgScore: 89, activity: 85, status: 'active' },
-    { id: 2, studentNo: '2021010', name: '冯二', email: 'fenger@example.com', submissionCount: 6, submissionRate: 75, avgScore: 82, activity: 70, status: 'active' },
-    { id: 3, studentNo: '2021011', name: '陈三', email: 'chensan@example.com', submissionCount: 8, submissionRate: 100, avgScore: 94, activity: 90, status: 'active' },
-    { id: 4, studentNo: '2021012', name: '褚四', email: 'chusi@example.com', submissionCount: 5, submissionRate: 63, avgScore: 75, activity: 55, status: 'inactive' },
-    { id: 5, studentNo: '2021013', name: '卫五', email: 'weiwu@example.com', submissionCount: 7, submissionRate: 88, avgScore: 87, activity: 80, status: 'active' },
-    { id: 6, studentNo: '2021014', name: '蒋六', email: 'jiangliu@example.com', submissionCount: 8, submissionRate: 100, avgScore: 91, activity: 88, status: 'active' },
-  ],
-  3: [ // 数据库原理
-    { id: 1, studentNo: '2021015', name: '沈七', email: 'shenqi@example.com', submissionCount: 6, submissionRate: 75, avgScore: 80, activity: 68, status: 'active' },
-    { id: 2, studentNo: '2021016', name: '韩八', email: 'hanba@example.com', submissionCount: 7, submissionRate: 88, avgScore: 86, activity: 75, status: 'active' },
-    { id: 3, studentNo: '2021017', name: '杨九', email: 'yangjiu@example.com', submissionCount: 8, submissionRate: 100, avgScore: 93, activity: 92, status: 'active' },
-    { id: 4, studentNo: '2021018', name: '朱十', email: 'zhushi@example.com', submissionCount: 4, submissionRate: 50, avgScore: 68, activity: 40, status: 'inactive' },
-    { id: 5, studentNo: '2021019', name: '秦十一', email: 'qinshi@example.com', submissionCount: 7, submissionRate: 88, avgScore: 84, activity: 78, status: 'active' },
-  ],
-  4: [ // 机器学习基础
-    { id: 1, studentNo: '2021020', name: '尤十二', email: 'youshier@example.com', submissionCount: 8, submissionRate: 100, avgScore: 96, activity: 95, status: 'active' },
-    { id: 2, studentNo: '2021021', name: '许十三', email: 'xushisan@example.com', submissionCount: 7, submissionRate: 88, avgScore: 88, activity: 82, status: 'active' },
-    { id: 3, studentNo: '2021022', name: '何十四', email: 'heshisi@example.com', submissionCount: 8, submissionRate: 100, avgScore: 92, activity: 90, status: 'active' },
-    { id: 4, studentNo: '2021023', name: '吕十五', email: 'lvshiwu@example.com', submissionCount: 6, submissionRate: 75, avgScore: 79, activity: 65, status: 'active' },
-    { id: 5, studentNo: '2021024', name: '施十六', email: 'shishiliu@example.com', submissionCount: 5, submissionRate: 63, avgScore: 70, activity: 48, status: 'inactive' },
-    { id: 6, studentNo: '2021025', name: '张十七', email: 'zhangshiqi@example.com', submissionCount: 8, submissionRate: 100, avgScore: 94, activity: 93, status: 'active' },
-  ],
-}
-
-const totalAssignments = 8
-
-const students = computed(() => {
-  return courseStudentsMap[selectedCourseId.value || 1] || courseStudentsMap[1]
-})
+const loading = ref(false)
+const students = ref<Student[]>([])
 
 const courseOptions = computed(() => {
   return courseStore.courses.map(c => ({ value: c.id, label: c.name }))
 })
 
+const fetchStudents = async () => {
+  if (!selectedCourseId.value) return
+  loading.value = true
+  try {
+    const data: any = await api.get(`/api/dashboard/${selectedCourseId.value}/students`)
+    students.value = data.students || []
+  } catch (error) {
+    console.error('获取学生列表失败:', error)
+    students.value = []
+  } finally {
+    loading.value = false
+  }
+}
+
 const filteredStudents = computed(() => {
   if (!searchQuery.value) return students.value
   const query = searchQuery.value.toLowerCase()
-  return students.value.filter(s => 
-    s.name.toLowerCase().includes(query) || 
-    s.studentNo.toLowerCase().includes(query)
+  return students.value.filter(s =>
+    s.real_name.toLowerCase().includes(query) ||
+    s.student_no.toLowerCase().includes(query) ||
+    s.username.toLowerCase().includes(query)
   )
 })
 
 const activeStudents = computed(() => {
-  return students.value.filter(s => s.activity >= 60).length
+  return students.value.filter(s => s.questions > 0 || s.submissions > 0).length
 })
 
 const pendingStudents = computed(() => {
-  return students.value.filter(s => s.submissionCount < totalAssignments).length
+  return students.value.filter(s => s.submissions === 0).length
 })
 
 const avgScore = computed(() => {
-  if (students.value.length === 0) return '0'
-  const sum = students.value.reduce((acc, s) => acc + s.avgScore, 0)
-  return (sum / students.value.length).toFixed(1)
+  const withAccuracy = students.value.filter(s => s.accuracy !== null)
+  if (withAccuracy.length === 0) return '—'
+  const sum = withAccuracy.reduce((acc, s) => acc + (s.accuracy || 0), 0)
+  return (sum / withAccuracy.length * 100).toFixed(1)
 })
 
-const getScoreClass = (score: number) => {
-  if (score >= 90) return 'score-excellent'
-  if (score >= 80) return 'score-good'
-  if (score >= 60) return 'score-pass'
+const getScoreClass = (accuracy: number | null) => {
+  if (accuracy === null) return 'score-pass'
+  const pct = accuracy * 100
+  if (pct >= 90) return 'score-excellent'
+  if (pct >= 80) return 'score-good'
+  if (pct >= 60) return 'score-pass'
   return 'score-fail'
 }
 
-const getActivityClass = (activity: number) => {
-  if (activity >= 80) return 'activity-high'
-  if (activity >= 50) return 'activity-medium'
-  return 'activity-low'
-}
-
 const exportStudents = () => {
-  const headers = ['学号', '姓名', '邮箱', '作业提交', '平均分', '活跃度', '状态']
+  const headers = ['学号', '姓名', '用户名', '作业提交', '已批改', '练习次数', '正确率', '提问数']
   const rows = students.value.map(s => [
-    s.studentNo,
-    s.name,
-    s.email,
-    `${s.submissionCount}/${totalAssignments}`,
-    s.avgScore,
-    s.activity,
-    s.status === 'active' ? '正常' : '未激活'
+    s.student_no || '-',
+    s.real_name,
+    s.username,
+    s.submissions,
+    s.graded,
+    s.practice_count,
+    s.accuracy !== null ? (s.accuracy * 100).toFixed(1) + '%' : '—',
+    s.questions
   ])
-  
-  const csvContent = [
-    headers.join(','),
-    ...rows.map(row => row.join(','))
-  ].join('\n')
-  
+  const csvContent = [headers.join(','), ...rows.map(r => r.map(c => `"${c}"`).join(','))].join('\n')
   const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' })
   const link = document.createElement('a')
-  const url = URL.createObjectURL(blob)
-  link.setAttribute('href', url)
-  link.setAttribute('download', `学生名单_${new Date().toLocaleDateString('zh-CN')}.csv`)
-  link.style.visibility = 'hidden'
-  document.body.appendChild(link)
+  link.href = URL.createObjectURL(blob)
+  link.download = `学生名单_${new Date().toLocaleDateString('zh-CN')}.csv`
   link.click()
-  document.body.removeChild(link)
 }
 
 const viewDetail = (student: Student) => {
-  alert(`查看学生详情：${student.name}\n学号：${student.studentNo}\n邮箱：${student.email}`)
+  alert(`查看学生详情：${student.real_name}\n学号：${student.student_no || '无'}\n作业提交：${student.submissions}\n练习次数：${student.practice_count}\n提问数：${student.questions}`)
 }
+
+watch(selectedCourseId, () => {
+  if (selectedCourseId.value) fetchStudents()
+})
 
 onMounted(() => {
   if (courseStore.courses.length > 0) {
-    selectedCourseId.value = courseStore.activeCourseId || courseStore.courses[0].id
+    selectedCourseId.value = courseStore.currentCourseId || courseStore.courses[0].id
   }
 })
 </script>

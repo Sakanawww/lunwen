@@ -23,9 +23,7 @@
             <tr>
               <th>课程名称</th>
               <th>课程代码</th>
-              <th>学分</th>
-              <th>学期</th>
-              <th>状态</th>
+              <th>角色</th>
               <th>操作</th>
             </tr>
           </thead>
@@ -38,11 +36,9 @@
                 </div>
               </td>
               <td class="td-mono">{{ course.code }}</td>
-              <td>{{ course.credits }}</td>
-              <td>{{ course.semester }}</td>
               <td>
-                <span class="status-badge" :class="course.status === 'active' ? 'status-active' : 'status-ended'">
-                  {{ course.status === 'active' ? '进行中' : '已结束' }}
+                <span class="status-badge" :class="course.my_role === 'owner' ? 'status-active' : 'status-ended'">
+                  {{ course.my_role === 'owner' ? '教师' : course.my_role === 'admin' ? '管理员' : '学生' }}
                 </span>
               </td>
               <td>
@@ -55,7 +51,7 @@
               </td>
             </tr>
             <tr v-if="courses.length === 0">
-              <td colspan="6" class="empty-state">
+              <td colspan="4" class="empty-state">
                 <i class="ri-book-line"></i>
                 <p>暂无课程</p>
               </td>
@@ -71,21 +67,22 @@
 import { ref, computed, onMounted } from 'vue'
 import { useCourseStore } from '@/stores/course.store'
 import { useAuthStore } from '@/stores/auth.store'
+import { useRouter } from 'vue-router'
 
 const courseStore = useCourseStore()
 const authStore = useAuthStore()
+const router = useRouter()
 
 const user = computed(() => authStore.user)
 const courses = computed(() => courseStore.courses)
 
 const selectCourse = (courseId: number) => {
-  courseStore.setCurrentCourse(courseId)
-  // 根据角色跳转到不同页面
+  courseStore.setActiveCourse(courseId)
   const role = user.value?.role
   if (role === 'student') {
-    window.location.href = '/chat'
+    router.push('/chat')
   } else {
-    window.location.href = '/dashboard'
+    router.push('/dashboard')
   }
 }
 

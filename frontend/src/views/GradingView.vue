@@ -47,7 +47,7 @@
               :class="{ 'loading': sub.grading }"
             >
               <td class="td-mono">{{ sub.id }}</td>
-              <td>{{ sub.assignmentTitle }}</td>
+              <td>{{ sub.assignment_title }}</td>
               <td>{{ sub.student }}</td>
               <td class="content-cell">{{ sub.content }}</td>
               <td>
@@ -90,7 +90,7 @@
             <tr v-if="filteredSubmissions.length === 0">
               <td colspan="7" class="empty-state">
                 <i class="ri-inbox-archive-line"></i>
-                <p>暂无提交</p>
+                <p>{{ loading ? '加载中…' : '暂无提交' }}</p>
               </td>
             </tr>
           </tbody>
@@ -132,162 +132,84 @@
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import DropdownSelect from '@/components/form/DropdownSelect.vue'
 import { useCourseStore } from '@/stores/course.store'
+import { api } from '@/utils/request'
 
 interface Submission {
   id: number
-  assignmentTitle: string
-  student: string
+  assignment_title: string
+  student: number
   content: string
   status: 'pending' | 'graded'
   score: number | null
+  feedback?: string | null
   grading?: boolean
 }
 
 const courseStore = useCourseStore()
 
-// 状态
 const statusFilter = ref<string>('all')
 const showResultModal = ref(false)
 const resultData = reactive({ score: null as number | null, feedback: '' })
+const loading = ref(false)
 
-// 选项
 const statusOptions = [
   { value: 'all', label: '全部状态' },
   { value: 'pending', label: '待批改' },
   { value: 'graded', label: '已批改' }
 ]
 
-// 提交列表
 const submissions = ref<Submission[]>([])
 
 const filteredSubmissions = computed(() => {
-  if (statusFilter.value === 'all') {
-    return submissions.value
-  }
+  if (statusFilter.value === 'all') return submissions.value
   return submissions.value.filter(s => s.status === statusFilter.value)
 })
 
-// 不同课程的作业提交数据
-const courseSubmissionsMap: Record<number, Submission[]> = {
-  1: [ // 计算机科学基础
-    {
-      id: 1,
-      assignmentTitle: '机器学习基础作业',
-      student: '张三',
-      content: '本次作业主要探讨了监督学习和无监督学习的区别。监督学习需要标记的训练数据...',
-      status: 'pending',
-      score: null,
-      grading: false
-    },
-    {
-      id: 2,
-      assignmentTitle: 'Python 编程练习',
-      student: '李四',
-      content: '本题实现了快速排序算法。快速排序是一种分治算法，通过选择一个基准值...',
-      status: 'graded',
-      score: 92,
-      grading: false
-    }
-  ],
-  2: [ // 数据结构与算法
-    {
-      id: 1,
-      assignmentTitle: '二叉树遍历实现',
-      student: '王五',
-      content: '实现了二叉树的前序、中序和后序遍历。递归实现简单直观，但需要注意栈溢出...',
-      status: 'pending',
-      score: null,
-      grading: false
-    },
-    {
-      id: 2,
-      assignmentTitle: '图的算法练习',
-      student: '赵六',
-      content: '实现了 Dijkstra 最短路径算法和 Prim 最小生成树算法...',
-      status: 'graded',
-      score: 88,
-      grading: false
-    }
-  ],
-  3: [ // 数据库原理
-    {
-      id: 1,
-      assignmentTitle: 'SQL 查询优化',
-      student: '钱七',
-      content: '通过分析执行计划，优化了多表连接查询的性能。索引的使用是关键...',
-      status: 'pending',
-      score: null,
-      grading: false
-    },
-    {
-      id: 2,
-      assignmentTitle: '事务与并发控制',
-      student: '孙八',
-      content: '讨论了数据库事务的 ACID 特性和隔离级别，以及锁机制...',
-      status: 'graded',
-      score: 85,
-      grading: false
-    }
-  ],
-  4: [ // 机器学习基础
-    {
-      id: 1,
-      assignmentTitle: '神经网络基础',
-      student: '周九',
-      content: '实现了多层感知机，包括前向传播和反向传播算法。激活函数选择 ReLU...',
-      status: 'pending',
-      score: null,
-      grading: false
-    },
-    {
-      id: 2,
-      assignmentTitle: '决策树与随机森林',
-      student: '吴十',
-      content: '比较了 ID3、C4.5 和 CART 算法的优缺点，实现了随机森林...',
-      status: 'graded',
-      score: 90,
-      grading: false
-    }
-  ]
+const loadSubmissions = async () => {
+  const courseId = courseStore.currentCourseId
+  if (!courseId) return
+  loading.value = true
+  try {
+    const data: any = await api.get(`/api/grade/submissions/${courseId}`)
+    submissions.value = (Array.isArray(data) ? data : []).map((s: any) => ({
+      id: s.id,
+      assignment_title: s.assignment_title || '—',
+      student: s.student,
+      content: s.content || '',
+      status: s.score !== null ? 'graded' : 'pending',
+      score: s.score,
+      feedback: s.feedback,
+      grading: false,
+    }))
+  } catch (error) {
+    console.error('获取提交列表失败:', error)
+    submissions.value = []
+  } finally {
+    loading.value = false
+  }
 }
 
-// 固定的分数映射（根据学生 ID 和课程 ID 确定）
-const scoreMap: Record<string, number> = {
-  '1-1': 88, '1-2': 92, '2-1': 85, '2-2': 90, '3-1': 82, '3-2': 87, '4-1': 91, '4-2': 89
-}
-
-const loadSubmissions = () => {
-  const courseId = courseStore.currentCourseId || 1
-  submissions.value = courseSubmissionsMap[courseId] || courseSubmissionsMap[1]
-}
-
-// 监听课程变化
-watch(() => courseStore.currentCourseId, () => {
-  loadSubmissions()
-})
+watch(() => courseStore.currentCourseId, () => loadSubmissions())
 
 const gradeSubmission = async (id: number) => {
   const sub = submissions.value.find(s => s.id === id)
   if (!sub) return
 
   sub.grading = true
-
   try {
-    await new Promise(resolve => setTimeout(resolve, 1500))
-    
+    const data: any = await api.post(`/api/grade/${id}`)
     sub.status = 'graded'
-    // 使用固定分数映射，保证同一学生同一课程分数一致
-    const courseId = courseStore.currentCourseId || 1
-    const fixedScore = scoreMap[`${courseId}-${sub.id}`] || 85
-    sub.score = fixedScore
+    sub.score = data.score
+    sub.feedback = data.feedback
     sub.grading = false
-    
-    resultData.score = sub.score
-    resultData.feedback = '答案结构清晰，对核心概念理解准确。建议在解释算法复杂度时提供更多具体的例子。'
+
+    resultData.score = data.score
+    resultData.feedback = data.feedback || '（无评语）'
     showResultModal.value = true
   } catch (error) {
     sub.grading = false
     console.error('批改失败:', error)
+    alert('批改失败，请稍后重试')
   }
 }
 
@@ -295,9 +217,7 @@ const closeResult = () => {
   showResultModal.value = false
 }
 
-onMounted(() => {
-  loadSubmissions()
-})
+onMounted(() => loadSubmissions())
 </script>
 
 <style lang="scss" scoped>

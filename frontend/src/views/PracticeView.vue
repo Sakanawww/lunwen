@@ -98,7 +98,7 @@
           <!-- 选择题选项 -->
           <div v-if="currentQuestion?.type === 'choice' && currentQuestion?.options" class="options-list">
             <div
-              v-for="(option, key) in currentQuestion.options"
+              v-for="(option, key) in parseOptions(currentQuestion.options)"
               :key="key"
               class="option-item"
               :class="{ selected: userAnswer === key }"
@@ -159,7 +159,7 @@
 
         <div v-if="explanation" class="explanation">
           <h4><i class="ri-lightbulb-flash-line"></i> 解析</h4>
-          <p>{{ explanation }}</p>
+          <p>正确答案：{{ correctAnswer }}</p>
         </div>
 
         <div class="modal-actions">
@@ -176,20 +176,31 @@
 import { ref, computed, onMounted } from 'vue'
 import DropdownSelect from '@/components/form/DropdownSelect.vue'
 import { useCourseStore } from '@/stores/course.store'
+import { api } from '@/utils/request'
 
 interface Question {
   id: number
   type: 'choice' | 'fill' | 'short'
   stem: string
-  options?: Record<string, string>
-  answer: string
+  options?: string
   difficulty: number
-  explanation?: string
+}
+
+const parseOptions = (optionsStr: string): Record<string, string> => {
+  if (!optionsStr) return {}
+  const result: Record<string, string> = {}
+  const parts = optionsStr.split(/[；;]\s*|\n/).filter(p => p.trim())
+  for (const part of parts) {
+    const match = part.match(/^([A-D])[.、:：]\s*(.+)/)
+    if (match) {
+      result[match[1]] = match[2].trim()
+    }
+  }
+  return result
 }
 
 const courseStore = useCourseStore()
 
-// 状态
 const selectedCourseId = ref<number | null>(null)
 const showPracticeModal = ref(false)
 const showResultModal = ref(false)
@@ -198,63 +209,45 @@ const userAnswer = ref<string>('')
 const isSubmitting = ref(false)
 const isCorrect = ref(false)
 const correctAnswer = ref('')
-const explanation = ref('')
+const loading = ref(false)
 
-// 试题列表
 const questions = ref<Question[]>([])
 
-// 题型标签映射
 const typeLabels: Record<string, string> = {
   choice: '选择题',
   fill: '填空题',
   short: '简答题'
 }
 
-// 选项
 const courseOptions = computed(() => {
   return courseStore.courses.map(c => ({ value: c.id, label: c.name }))
 })
 
-// 方法
 const onCourseChange = (courseId: number) => {
   courseStore.setActiveCourse(courseId)
   loadQuestions()
 }
 
 const loadQuestions = async () => {
-  // TODO: 调用 API 加载试题
-  questions.value = [
-    {
-      id: 1,
-      type: 'choice',
-      stem: '以下哪个排序算法的平均时间复杂度为 O(nlogn)？',
-      options: {
-        A: '冒泡排序',
-        B: '快速排序',
-        C: '插入排序',
-        D: '选择排序'
-      },
-      answer: 'B',
-      difficulty: 2,
-      explanation: '快速排序采用分治策略，平均时间复杂度为 O(nlogn)。冒泡排序、插入排序和选择排序的平均时间复杂度均为 O(n²)。'
-    },
-    {
-      id: 2,
-      type: 'fill',
-      stem: '在二叉树遍历中，____ 遍历的顺序是：左子树 → 根节点 → 右子树。',
-      answer: '中序',
-      difficulty: 2,
-      explanation: '中序遍历的顺序是：先遍历左子树，然后访问根节点，最后遍历右子树。'
-    },
-    {
-      id: 3,
-      type: 'short',
-      stem: '请简述机器学习中过拟合的概念。',
-      answer: '过拟合是指模型在训练集上表现很好，但在测试集或新数据上表现较差的现象。',
-      difficulty: 3,
-      explanation: '过拟合通常发生在模型过于复杂或训练数据不足时，模型记住了训练数据的噪声而非学习一般规律。'
-    }
-  ]
+  if (!selectedCourseId.value) return
+  loading.value = true
+  try {
+    const data: any = await api.get(`/api/question/list/${selectedCourseId.value}`, {
+      params: { page: 1, size: 50 }
+    })
+    questions.value = (Array.isArray(data) ? data : (data.items || [])).map((q: any) => ({
+      id: q.id,
+      type: q.type,
+      stem: q.stem,
+      options: q.options,
+      difficulty: q.difficulty ?? 1,
+    }))
+  } catch (error) {
+    console.error('获取试题失败:', error)
+    questions.value = []
+  } finally {
+    loading.value = false
+  }
 }
 
 const startPractice = (question: Question) => {
@@ -271,20 +264,18 @@ const submitAnswer = async () => {
   if (!currentQuestion.value || !userAnswer.value) return
 
   isSubmitting.value = true
-
   try {
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    
-    // 判断答案是否正确
-    const correct = currentQuestion.value.answer.toUpperCase() === userAnswer.value.toUpperCase()
-    isCorrect.value = correct
-    correctAnswer.value = currentQuestion.value.answer
-    explanation.value = currentQuestion.value.explanation || ''
-    
+    const data: any = await api.post('/api/practice/submit', {
+      question_id: currentQuestion.value.id,
+      answer: userAnswer.value,
+    })
+    isCorrect.value = data.correct
+    correctAnswer.value = data.expected || '—'
     showPracticeModal.value = false
     showResultModal.value = true
   } catch (error) {
     console.error('提交失败:', error)
+    alert('提交失败，请稍后重试')
   } finally {
     isSubmitting.value = false
   }
@@ -302,12 +293,14 @@ const closeResult = () => {
   userAnswer.value = ''
 }
 
-onMounted(() => {
-  loadQuestions()
-  
-  if (courseStore.courses.length > 0) {
-    selectedCourseId.value = courseStore.activeCourseId || courseStore.courses[0].id
+onMounted(async () => {
+  if (courseStore.courses.length === 0) {
+    await courseStore.fetchCourses()
   }
+  if (courseStore.courses.length > 0) {
+    selectedCourseId.value = courseStore.currentCourseId || courseStore.courses[0].id
+  }
+  loadQuestions()
 })
 </script>
 
