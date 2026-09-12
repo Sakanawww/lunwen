@@ -150,10 +150,13 @@
               <div class="question-text">{{ q.text }}</div>
               <div class="question-meta">
                 <span><i class="ri-user-line"></i> {{ q.studentCount }}人提问</span>
-                <span class="question-trend" :class="q.trend > 0 ? 'up' : 'down'">
-                  <i :class="q.trend > 0 ? 'ri-arrow-up-line' : 'ri-arrow-down-line'"></i>
-                  {{ Math.abs(q.trend) }}%
+                <span v-if="q.trend > 0" class="question-trend up">
+                  <i class="ri-arrow-up-line"></i>{{ q.trend }}%
                 </span>
+                <span v-else-if="q.trend < 0" class="question-trend down">
+                  <i class="ri-arrow-down-line"></i>{{ Math.abs(q.trend) }}%
+                </span>
+                <span v-else class="question-trend flat">持平</span>
               </div>
             </div>
           </div>
@@ -298,7 +301,7 @@ const initCharts = () => {
       boundaryGap: false,
       data: labels,
       axisLine: { lineStyle: { color: '#DAD5C8' } },
-      axisLabel: { color: '#6B6B6B', rotate: labels.length > 12 ? 45 : 0 }
+      axisLabel: { color: '#6B6B6B', rotate: labels.length > 16 ? 45 : 0 }
     },
     yAxis: {
       type: 'value',
@@ -311,6 +314,8 @@ const initCharts = () => {
         name: '作业提交',
         type: 'line',
         smooth: true,
+        showSymbol: false,
+        lineStyle: { width: 2.5 },
         data: submissions,
         itemStyle: { color: '#10B981' },
         areaStyle: {
@@ -324,6 +329,8 @@ const initCharts = () => {
         name: '答疑提问',
         type: 'line',
         smooth: true,
+        showSymbol: false,
+        lineStyle: { width: 2.5 },
         data: questions,
         itemStyle: { color: '#3B82F6' },
         areaStyle: {
@@ -337,6 +344,8 @@ const initCharts = () => {
         name: '知识库引用',
         type: 'line',
         smooth: true,
+        showSymbol: false,
+        lineStyle: { width: 2.5 },
         data: kb,
         itemStyle: { color: '#8B5CF6' },
         areaStyle: {
@@ -448,7 +457,7 @@ const loadDashboardData = async () => {
       id: q.text,
       text: q.text,
       studentCount: q.count,
-      trend: 0,
+      trend: Number(q.trend) || 0,
     }))
 
     // 图表数据
@@ -911,6 +920,10 @@ onMounted(async () => {
 
   &.down {
     color: rgb(239, 68, 68);
+  }
+
+  &.flat {
+    color: var(--text-muted);
   }
 }
 

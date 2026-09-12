@@ -211,12 +211,34 @@ def _trend(db: OrmSession, course_id: int, days: int):
                 m.Message.created_at >= since)
         .group_by(func.date(m.Message.created_at)).all()
     )
-    labels = [d.strftime("%m-%d") for d in day_list]
+    # 聚合粒度：≤31 天按日，≤120 天按周，更长按月 —— 避免长区间数据点过密不可读
+    if days <= 31:
+        step = 1
+    elif days <= 120:
+        step = 7
+    else:
+        step = 30
+
+    if step == 1:
+        labels = [d.strftime("%m-%d") for d in day_list]
+
+        def _series(mapping):
+            return [mapping.get(d, 0) for d in day_list]
+    else:
+        # 从尾部向前分桶，保证最后一个桶包含今天；标签取桶起始日期
+        rev = list(reversed(day_list))
+        chunks = [rev[i:i + step] for i in range(0, len(rev), step)]
+        chunks.reverse()
+        labels = [chunk[0].strftime("%m-%d") for chunk in chunks]
+
+        def _series(mapping):
+            return [sum(mapping.get(d, 0) for d in chunk) for chunk in chunks]
+
     return {
         "labels": labels,
-        "submissions": [submissions.get(d, 0) for d in day_list],
-        "questions": [messages.get(d, 0) for d in day_list],
-        "kb": [kb_hits.get(d, 0) for d in day_list],
+        "submissions": _series(submissions),
+        "questions": _series(messages),
+        "kb": _series(kb_hits),
     }
 
 
@@ -316,21 +338,43 @@ def dashboard_overview(course_id: int, range: int = 30,
                      .filter(m.Assignment.course_id == course_id).scalar()) or 0,
     }
 
-    # 热门问题 TOP8：按 user 消息文本聚合
-    hot_rows = (
-        db.query(m.Message.content, func.count(m.Message.id))
-        .join(m.Session, m.Message.session_id == m.Session.id)
-        .filter(m.Session.course_id == course_id,
-                m.Message.role == "user",
-                m.Message.content.isnot(None),
-                func.char_length(m.Message.content) > 2)
-        .group_by(m.Message.content)
-        .order_by(func.count(m.Message.id).desc())
-        .limit(8).all()
-    )
-    hot_questions = [
-        {"text": c[:40], "count": n} for c, n in hot_rows
+    # 热门问题 TOP8：全期聚合排序，热度变化按所选范围对比上一周期（环比）
+    win = range if range > 0 else 90
+    since_r = datetime.now() - timedelta(days=win)
+    prev_r = since_r - timedelta(days=win)
+    ask_base = [
+        m.Session.course_id == course_id,
+        m.Message.role == "user",
+        m.Message.content.isnot(None),
+        func.char_length(m.Message.content) > 2,
     ]
+
+    def _ask_counts(lo, hi):
+        q = (
+            db.query(m.Message.content, func.count(m.Message.id))
+            .join(m.Session, m.Message.session_id == m.Session.id)
+            .filter(*ask_base)
+        )
+        if lo is not None:
+            q = q.filter(m.Message.created_at >= lo)
+        if hi is not None:
+            q = q.filter(m.Message.created_at < hi)
+        return {c: n for c, n in q.group_by(m.Message.content).all()}
+
+    total_counts = _ask_counts(None, None)
+    recent_counts = _ask_counts(since_r, None)
+    prev_counts = _ask_counts(prev_r, since_r)
+
+    hot_questions = []
+    for c, n in sorted(total_counts.items(), key=lambda kv: kv[1], reverse=True)[:8]:
+        rc, pc = recent_counts.get(c, 0), prev_counts.get(c, 0)
+        if pc > 0:
+            trend = round((rc - pc) / pc * 100)
+        elif rc > 0:
+            trend = 100
+        else:
+            trend = 0
+        hot_questions.append({"text": c[:40], "count": n, "trend": trend})
 
     activities = _activities(db, course_id, range, limit=120)
 
