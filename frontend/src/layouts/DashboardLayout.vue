@@ -43,6 +43,7 @@
         </transition>
       </router-view>
     </main>
+    <ToastContainer />
   </div>
 </template>
 
@@ -50,6 +51,7 @@
 import { computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth.store'
 import { useCourseStore } from '@/stores/course.store'
+import ToastContainer from '@/components/ToastContainer.vue'
 
 const authStore = useAuthStore()
 const courseStore = useCourseStore()
@@ -66,26 +68,34 @@ const navItems = computed(() => {
       { path: '/chat', label: '智能答疑' },
       { path: '/practice', label: '在线练习' },
       { path: '/my-assignments', label: '我的作业' },
+      { path: '/my-performance', label: '我的学情' },
+      { path: '/announcements', label: '课程公告' },
       { path: '/courses', label: '我的课程' },
     ]
   } else if (role === 'teacher') {
     return [
       { path: '/dashboard', label: '仪表盘' },
       { path: '/dashboard/students', label: '学生名单' },
+      { path: '/attendance', label: '考勤管理' },
+      { path: '/performance', label: '平时表现' },
       { path: '/knowledge', label: '知识库' },
       { path: '/assignments', label: '作业管理' },
       { path: '/grading', label: '作业批改' },
       { path: '/questions', label: '试题管理' },
+      { path: '/announcements', label: '公告' },
     ]
   } else {
     // admin — 与 teacher 共享教学管理功能，额外拥有系统设置
     return [
       { path: '/dashboard', label: '学情看板' },
       { path: '/dashboard/students', label: '学生名单' },
+      { path: '/attendance', label: '考勤管理' },
+      { path: '/performance', label: '平时表现' },
       { path: '/knowledge', label: '知识库' },
       { path: '/assignments', label: '作业管理' },
       { path: '/grading', label: '作业批改' },
       { path: '/questions', label: '试题管理' },
+      { path: '/announcements', label: '公告' },
       { path: '/admin', label: '系统设置' },
     ]
   }

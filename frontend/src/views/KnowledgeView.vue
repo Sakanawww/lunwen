@@ -123,60 +123,25 @@
       </div>
     </div>
 
-    <!-- 文档预览弹窗 -->
-    <div
-      v-if="showPreviewModal"
-      class="modal-mask"
-      @click.self="closePreview"
-    >
-      <div class="modal-box modal-wide" role="dialog" aria-modal="true">
-        <div class="modal-head">
-          <h3 id="previewTitle">文档预览</h3>
-          <button type="button" class="modal-x" @click="closePreview">
-            <i class="ri-close-line"></i>
-          </button>
-        </div>
-        <div class="preview-meta" v-if="previewDoc">
-          {{ previewDoc.title }} · {{ previewDoc.chunk_num }} 个知识块
-        </div>
-        <div class="preview-body">
-          <div v-if="previewLoading" class="preview-loading">
-            <i class="ri-loader-4-line spin"></i>
-            <span>加载中…</span>
-          </div>
-          <div v-else-if="previewChunks.length === 0" class="preview-empty">
-            <i class="ri-file-search-line"></i>
-            <p>该文档没有可预览的内容</p>
-          </div>
-          <div v-else class="preview-chunks">
-            <div
-              v-for="(chunk, index) in previewChunks"
-              :key="index"
-              class="chunk-item"
-            >
-              <div class="chunk-head">
-                <i class="ri-file-text-line"></i>
-                <span class="chunk-seq">片段 {{ index + 1 }}</span>
-                <span>共 {{ previewChunks.length }} 段</span>
-              </div>
-              <div class="chunk-content">{{ chunk.content }}</div>
-            </div>
-          </div>
-        </div>
-        <div class="modal-actions">
-          <button type="button" class="btn btn-secondary" @click="closePreview">
-            <i class="ri-close-line"></i> 关闭
-          </button>
-        </div>
-      </div>
-    </div>
+  <ConfirmDialog
+    v-model:visible="showConfirm"
+    title="删除文档"
+    :message="`确定要删除文档「${confirmDeleteDoc?.title || ''}」吗？删除后不可恢复。`"
+    type="danger"
+    confirm-text="删除"
+    @confirm="doDelete"
+    @cancel="showConfirm = false"
+  />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import DropdownSelect from '@/components/form/DropdownSelect.vue'
 import { useCourseStore } from '@/stores/course.store'
+import { useToast } from '@/composables/useToast'
+import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import { api } from '@/utils/request'
 
 interface Document {
@@ -192,6 +157,8 @@ interface Chunk {
 }
 
 const courseStore = useCourseStore()
+const router = useRouter()
+const toast = useToast()
 
 const selectedCourseId = ref<number | null>(null)
 const selectedFile = ref<File | null>(null)
@@ -203,10 +170,8 @@ const fileInputRef = ref<HTMLInputElement | null>(null)
 
 const documents = ref<Document[]>([])
 
-const showPreviewModal = ref(false)
-const previewDoc = ref<Document | null>(null)
-const previewLoading = ref(false)
-const previewChunks = ref<Chunk[]>([])
+const showConfirm = ref(false)
+const confirmDeleteDoc = ref<Document | null>(null)
 
 const courseOptions = computed(() => {
   return courseStore.courses.map(c => ({ value: c.id, label: c.name }))
@@ -280,42 +245,26 @@ const loadDocuments = async () => {
   }
 }
 
-const openPreview = async (doc: Document) => {
-  previewDoc.value = doc
-  previewLoading.value = true
-  showPreviewModal.value = true
-  previewChunks.value = []
-
-  try {
-    const data: any = await api.get(`/api/kb/doc/${doc.id}/preview`)
-    previewChunks.value = (data.chunks || data.segments || []).map((c: any, i: number) => ({
-      seq: c.seq ?? i + 1,
-      content: c.content || c.text || '',
-    }))
-  } catch (error) {
-    console.error('加载预览失败:', error)
-    previewChunks.value = []
-  } finally {
-    previewLoading.value = false
-  }
+const openPreview = (doc: Document) => {
+  router.push({ name: 'KnowledgeDoc', params: { docId: doc.id } })
 }
 
-const closePreview = () => {
-  showPreviewModal.value = false
-  previewDoc.value = null
-  previewChunks.value = []
+const deleteDocument = (doc: Document) => {
+  confirmDeleteDoc.value = doc
+  showConfirm.value = true
 }
 
-const deleteDocument = async (doc: Document) => {
-  if (!confirm(`确定要删除文档"${doc.title}"吗？`)) return
+const doDelete = async () => {
+  showConfirm.value = false
+  if (!confirmDeleteDoc.value) return
+  const doc = confirmDeleteDoc.value
+  confirmDeleteDoc.value = null
   try {
     await api.delete(`/api/kb/doc/${doc.id}`)
     documents.value = documents.value.filter(d => d.id !== doc.id)
-    uploadSuccess.value = true
-    uploadMessage.value = '文档已删除'
+    toast.success('文档已删除')
   } catch (error) {
-    uploadSuccess.value = false
-    uploadMessage.value = '删除失败'
+    toast.error('删除失败')
   }
 }
 
@@ -327,7 +276,8 @@ watch(selectedCourseId, () => {
   if (selectedCourseId.value) loadDocuments()
 })
 
-onMounted(() => {
+onMounted(async () => {
+  if (courseStore.courses.length === 0) await courseStore.fetchCourses()
   if (courseStore.courses.length > 0) {
     selectedCourseId.value = courseStore.currentCourseId || courseStore.courses[0].id
   }

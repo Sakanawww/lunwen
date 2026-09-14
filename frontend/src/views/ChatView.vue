@@ -169,6 +169,7 @@ import { ref, nextTick, onMounted } from 'vue'
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
 import { useCourseStore } from '@/stores/course.store'
+import { useToast } from '@/composables/useToast'
 
 interface Message {
   role: 'user' | 'assistant'
@@ -191,6 +192,7 @@ interface SessionInfo {
 }
 
 const courseStore = useCourseStore()
+const toast = useToast()
 
 // 状态
 const messages = ref<Message[]>([])
@@ -261,7 +263,7 @@ const onFileSelected = async (e: Event) => {
     })
     if (!res.ok) {
       const err = await res.json().catch(() => null)
-      alert(err?.detail || '附件上传失败')
+      toast.error(err?.detail || '附件上传失败')
       return
     }
     const data = await res.json()
@@ -269,7 +271,7 @@ const onFileSelected = async (e: Event) => {
     log('附件已上传:', data.name)
   } catch (err) {
     log('上传附件失败:', err)
-    alert('附件上传失败，请重试')
+    toast.error('附件上传失败，请重试')
   } finally {
     input.value = ''
   }
@@ -458,7 +460,7 @@ const clearChat = () => {
 // 导出对话
 const exportChat = () => {
   if (messages.value.length === 0) {
-    alert('暂无对话内容可导出')
+    toast.info('暂无对话内容可导出')
     return
   }
 
@@ -532,7 +534,7 @@ const loadMessages = async (sessionId: number) => {
     await scrollToBottom()
   } catch (e) {
     log('加载消息失败:', e)
-    alert('加载历史对话失败，请稍后重试')
+    toast.error('加载历史对话失败，请稍后重试')
   } finally {
     isSessionLoading.value = false
     loadingSessionId.value = null
@@ -570,7 +572,7 @@ const removeSession = async (id: number) => {
     }
   } catch (e) {
     log('删除会话失败:', e)
-    alert('删除会话失败，请稍后重试')
+    toast.error('删除会话失败，请稍后重试')
   }
 }
 

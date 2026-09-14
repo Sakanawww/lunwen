@@ -133,6 +133,7 @@ import { ref, reactive, computed, onMounted, watch } from 'vue'
 import DropdownSelect from '@/components/form/DropdownSelect.vue'
 import { useCourseStore } from '@/stores/course.store'
 import { api } from '@/utils/request'
+import { useToast } from '@/composables/useToast'
 
 interface Submission {
   id: number
@@ -147,6 +148,7 @@ interface Submission {
 }
 
 const courseStore = useCourseStore()
+const toast = useToast()
 
 const statusFilter = ref<string>('all')
 const showResultModal = ref(false)
@@ -211,7 +213,7 @@ const gradeSubmission = async (id: number) => {
   } catch (error) {
     sub.grading = false
     console.error('批改失败:', error)
-    alert('批改失败，请稍后重试')
+    toast.error('批改失败，请稍后重试')
   }
 }
 

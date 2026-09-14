@@ -81,6 +81,20 @@
           <div class="metric-label">活跃学生</div>
         </div>
       </div>
+
+      <div class="metric-card" title="点击查看考勤管理">
+        <div class="metric-top">
+          <div class="metric-value">{{ metrics.attendanceRate }}%</div>
+          <div class="metric-label">出勤率</div>
+        </div>
+      </div>
+
+      <div class="metric-card" title="点击查看平时表现评估">
+        <div class="metric-top">
+          <div class="metric-value">{{ metrics.avgPerformance }}</div>
+          <div class="metric-label">平均平时分</div>
+        </div>
+      </div>
     </div>
 
     <!-- 图表行 -->
@@ -176,6 +190,7 @@ import DropdownSelect from '@/components/form/DropdownSelect.vue'
 import { useCourseStore } from '@/stores/course.store'
 import VChart from 'vue-echarts'
 import * as echarts from 'echarts'
+import { useToast } from '@/composables/useToast'
 
 interface Metric {
   totalStudents: number
@@ -184,6 +199,8 @@ interface Metric {
   avgScore: string
   chatCount: number
   activeStudents: number
+  attendanceRate: string
+  avgPerformance: string
 }
 
 interface HotQuestion {
@@ -201,6 +218,7 @@ interface TrendDatum {
 }
 
 const courseStore = useCourseStore()
+const toast = useToast()
 
 // 状态
 const isLoading = ref(false)
@@ -220,7 +238,9 @@ const metrics = reactive<Metric>({
   gradedCount: 0,
   avgScore: '0',
   chatCount: 0,
-  activeStudents: 0
+  activeStudents: 0,
+  attendanceRate: '0',
+  avgPerformance: '0',
 })
 
 // 选项
@@ -422,7 +442,7 @@ const refreshData = async () => {
   try {
     await loadDashboardData()
     // 显示刷新成功提示
-    alert('数据已刷新')
+    toast.success('数据已刷新')
   } finally {
     isLoading.value = false
   }
@@ -450,6 +470,8 @@ const loadDashboardData = async () => {
       avgScore: data.metrics.avg_score ?? '0',
       chatCount: data.metrics.chat_count,
       activeStudents: data.metrics.active_students,
+      attendanceRate: data.attendance?.attendance_rate?.toString() ?? '0',
+      avgPerformance: data.performance?.avg_total?.toString() ?? '0',
     })
 
     // 热门问题
@@ -651,12 +673,12 @@ onMounted(async () => {
 // 核心指标卡片
 .metrics-grid {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: var(--space-4);
   margin-bottom: var(--space-6);
 
   @media (max-width: 1200px) {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
   }
 
   @media (max-width: 768px) {

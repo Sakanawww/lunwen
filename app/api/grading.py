@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session as OrmSession
 
 from app.agents.grader_agent import grade
 from app.core.database import get_db
+from app.core.course_deps import require_course_role, course_role
 from app.core.deps import current_user, require_role
 from app.models import models as m
 
@@ -17,6 +18,15 @@ def grade_submission(submission_id: int, request: Request, db: OrmSession = Depe
     sub = db.get(m.Submission, submission_id)
     if not sub:
         raise HTTPException(status_code=404, detail="提交不存在")
+
+    # 校验课程归属：从 submission → assignment → course_id
+    assignment = db.get(m.Assignment, sub.assignment_id)
+    if not assignment:
+        raise HTTPException(status_code=404, detail="作业不存在")
+    if user.role != "admin":
+        role = course_role(user.id, assignment.course_id, db)
+        if role is None or role not in ("owner", "teacher", "assistant"):
+            raise HTTPException(status_code=403, detail="无权批改该课程作业")
 
     result = grade(sub.content)
     rec = m.GradingRecord(
@@ -40,7 +50,7 @@ def grade_submission(submission_id: int, request: Request, db: OrmSession = Depe
 
 @router.get("/submissions/{course_id}")
 def get_submissions(course_id: int, db: OrmSession = Depends(get_db),
-                    user: m.User = Depends(current_user)):
+                    user: m.User = Depends(require_course_role("teacher", "assistant"))):
     """按课程列出作业提交（含批改状态）。"""
     rows = (
         db.query(m.Submission)

@@ -48,8 +48,8 @@
         <div class="stat-label">待完成作业</div>
       </div>
       <div class="stat-card">
-        <div class="stat-value">{{ avgScore }}</div>
-        <div class="stat-label">平均分</div>
+        <div class="stat-value">{{ avgGrade }}</div>
+        <div class="stat-label">作业均分</div>
       </div>
     </div>
 
@@ -74,9 +74,10 @@
               <th>姓名</th>
               <th>邮箱</th>
               <th>作业提交</th>
-              <th>平均分</th>
-              <th>活跃度</th>
-              <th>状态</th>
+              <th>作业均分</th>
+              <th>练习正确率</th>
+              <th>练习次数</th>
+              <th>提问数</th>
               <th>操作</th>
             </tr>
           </thead>
@@ -92,7 +93,12 @@
               <td class="td-mono">{{ student.username }}</td>
               <td>{{ student.submissions }}</td>
               <td>
-                <span class="score-badge" :class="getScoreClass(student.accuracy)">
+                <span class="score-badge" :class="getGradeClass(student.avg_grade)">
+                  {{ student.avg_grade !== null ? student.avg_grade : '—' }}
+                </span>
+              </td>
+              <td>
+                <span class="accuracy-text">
                   {{ student.accuracy !== null ? (student.accuracy * 100).toFixed(0) + '%' : '—' }}
                 </span>
               </td>
@@ -106,7 +112,7 @@
               </td>
             </tr>
             <tr v-if="filteredStudents.length === 0">
-              <td colspan="8" class="empty-state">
+              <td colspan="9" class="empty-state">
                 <i class="ri-inbox-line"></i>
                 <p>{{ loading ? '加载中…' : '暂无学生数据' }}</p>
               </td>
@@ -120,8 +126,10 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import DropdownSelect from '@/components/form/DropdownSelect.vue'
 import { useCourseStore } from '@/stores/course.store'
+import { useToast } from '@/composables/useToast'
 import { api } from '@/utils/request'
 
 interface Student {
@@ -132,12 +140,15 @@ interface Student {
   class_name: string
   submissions: number
   graded: number
+  avg_grade: number | null
   practice_count: number
   accuracy: number | null
   questions: number
 }
 
 const courseStore = useCourseStore()
+const router = useRouter()
+const toast = useToast()
 
 const selectedCourseId = ref<number | null>(null)
 const searchQuery = ref('')
@@ -180,30 +191,30 @@ const pendingStudents = computed(() => {
   return students.value.filter(s => s.submissions === 0).length
 })
 
-const avgScore = computed(() => {
-  const withAccuracy = students.value.filter(s => s.accuracy !== null)
-  if (withAccuracy.length === 0) return '—'
-  const sum = withAccuracy.reduce((acc, s) => acc + (s.accuracy || 0), 0)
-  return (sum / withAccuracy.length * 100).toFixed(1)
+const avgGrade = computed(() => {
+  const withGrade = students.value.filter(s => s.avg_grade !== null)
+  if (withGrade.length === 0) return '—'
+  const sum = withGrade.reduce((acc, s) => acc + (s.avg_grade || 0), 0)
+  return (sum / withGrade.length).toFixed(1)
 })
 
-const getScoreClass = (accuracy: number | null) => {
-  if (accuracy === null) return 'score-pass'
-  const pct = accuracy * 100
-  if (pct >= 90) return 'score-excellent'
-  if (pct >= 80) return 'score-good'
-  if (pct >= 60) return 'score-pass'
+const getGradeClass = (grade: number | null) => {
+  if (grade === null) return 'score-pass'
+  if (grade >= 90) return 'score-excellent'
+  if (grade >= 80) return 'score-good'
+  if (grade >= 60) return 'score-pass'
   return 'score-fail'
 }
 
 const exportStudents = () => {
-  const headers = ['学号', '姓名', '用户名', '作业提交', '已批改', '练习次数', '正确率', '提问数']
+  const headers = ['学号', '姓名', '用户名', '作业提交', '已批改', '作业均分', '练习次数', '练习正确率', '提问数']
   const rows = students.value.map(s => [
     s.student_no || '-',
     s.real_name,
     s.username,
     s.submissions,
     s.graded,
+    s.avg_grade !== null ? s.avg_grade : '—',
     s.practice_count,
     s.accuracy !== null ? (s.accuracy * 100).toFixed(1) + '%' : '—',
     s.questions
@@ -217,11 +228,11 @@ const exportStudents = () => {
 }
 
 const viewDetail = (student: Student) => {
-  alert(`查看学生详情：${student.real_name}\n学号：${student.student_no || '无'}\n作业提交：${student.submissions}\n练习次数：${student.practice_count}\n提问数：${student.questions}`)
+  router.push({ name: 'StudentDetail', params: { id: student.user_id } })
 }
 
-watch(selectedCourseId, () => {
-  if (selectedCourseId.value) fetchStudents()
+watch(selectedCourseId, (v) => {
+  if (v) { courseStore.setActiveCourse(v); fetchStudents() }
 })
 
 onMounted(() => {
@@ -490,6 +501,12 @@ onMounted(() => {
     background: rgba(239, 68, 68, 0.1);
     color: rgb(185, 28, 28);
   }
+}
+
+.accuracy-text {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--text-primary);
 }
 
 .activity-badge {

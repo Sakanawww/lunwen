@@ -27,6 +27,15 @@ KB_DIR = BASE_DIR / "data" / "seed_kb"
 
 DEMO_PASSWORD = "123456"
 
+# 班级定义：(名称, 年级, 专业)
+CLASSES = [
+    ("计科2601班", "2026级", "计算机科学与技术"),
+    ("计科2602班", "2026级", "计算机科学与技术"),
+]
+
+# 每个学生分配到的班级索引（与 STUDENTS 列表对齐）
+STUDENT_CLASS_MAP = [0, 0, 0, 0, 0, 1, 1, 1, 1, 1]
+
 # (课程名, 课程代码, 讲义文件, 授课教师用户名)
 COURSES = [
     ("数据结构", "CS202", "数据结构讲义.txt", "teacher"),
@@ -94,11 +103,20 @@ def seed_users(db: SessionLocal) -> dict:
     # 教师档案
     for username, _, tno, dept in TEACHERS:
         db.add(m.Teacher(user_id=ids[username], teacher_no=tno, department=dept))
-    # 学生档案
+    # 班级实体
+    class_ids = []
+    for name, grade, major in CLASSES:
+        cls = m.Class(name=name, grade=grade, major=major)
+        db.add(cls)
+        db.flush()
+        class_ids.append(cls.id)
+    # 学生档案（关联班级 class_id）
     for i, (username, _) in enumerate(STUDENTS):
+        cls_idx = STUDENT_CLASS_MAP[i] if i < len(STUDENT_CLASS_MAP) else 0
         db.add(m.Student(user_id=ids[username],
                          student_no=f"S2026{i + 1:03d}",
-                         class_name="计科2601班"))
+                         class_name=CLASSES[cls_idx][0],
+                         class_id=class_ids[cls_idx]))
     return ids
 
 
@@ -174,6 +192,62 @@ def seed_questions(db: SessionLocal, courses: dict) -> None:
                               created_by=teacher_id, source="manual"))
 
 
+def seed_attendance(db: SessionLocal, courses: dict, user_ids: dict) -> None:
+    """回填近 90 天考勤数据：每门课 8 次考勤课次 + 随机签到明细。"""
+    import random
+    rng = random.Random(20260914)
+    now = datetime.now()
+    student_ids = [user_ids[u] for u, _ in STUDENTS]
+
+    for name, _, _, _ in COURSES:
+        course_id, teacher_id = courses[name]
+        # 8 次考勤，分布在近 90 天内
+        for k in range(8):
+            days_ago = int(rng.uniform(2, 88))
+            sess_date = (now - timedelta(days=days_ago)).date()
+            status = "open" if k == 0 else "closed"
+            sess = m.AttendanceSession(course_id=course_id, session_date=sess_date,
+                                       status=status, created_by=teacher_id,
+                                       created_at=now - timedelta(days=days_ago))
+            db.add(sess)
+            db.flush()
+            # 为每个学生生成签到状态
+            for sid in student_ids:
+                r = rng.random()
+                if r < 0.82:
+                    st = "present"
+                elif r < 0.90:
+                    st = "late"
+                elif r < 0.95:
+                    st = "leave"
+                else:
+                    st = "absent"
+                # 个别学生连续缺勤（用于预警演示）
+                if k >= 5 and student_ids.index(sid) == 3 and days_ago < 30:
+                    st = "absent"
+                signed_at = (now - timedelta(days=days_ago, hours=rng.uniform(0, 2))
+                             ) if st in ("present", "late") else None
+                db.add(m.AttendanceRecord(session_id=sess.id, student_id=sid,
+                                          status=st, signed_at=signed_at))
+
+
+def seed_announcements(db: SessionLocal, courses: dict, user_ids: dict) -> None:
+    """为每门课创建 2-3 条演示公告。"""
+    now = datetime.now()
+    templates = [
+        ("关于第3章课后作业的说明", "第3章课后习题1-5题需在下周日前提交，请注意截止时间。"),
+        ("期中复习安排", "本周五将进行期中复习答疑，请同学们提前准备问题。"),
+        ("课堂纪律提醒", "请同学们按时出勤，连续缺勤将影响平时成绩。"),
+    ]
+    for name, _, _, teacher_username in COURSES:
+        course_id, _ = courses[name]
+        teacher_id = user_ids[teacher_username]
+        for i, (title, content) in enumerate(templates[:2]):
+            db.add(m.Announcement(course_id=course_id, title=title, content=content,
+                                  created_by=teacher_id,
+                                  created_at=now - timedelta(days=i * 3 + 1)))
+
+
 def main() -> None:
     force = "--force" in sys.argv
     ensure_tables(force)
@@ -190,6 +264,8 @@ def main() -> None:
         seed_knowledge(db, courses, user_ids["admin"])
         seed_assignments(db, courses)
         seed_questions(db, courses)
+        seed_attendance(db, courses, user_ids)
+        seed_announcements(db, courses, user_ids)
 
         # 近 90 天学习行为数据（答疑/作业/练习历史）
         from seed_history import backfill_course

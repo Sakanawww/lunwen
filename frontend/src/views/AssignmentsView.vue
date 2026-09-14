@@ -94,6 +94,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import DropdownSelect from '@/components/form/DropdownSelect.vue'
 import { useCourseStore } from '@/stores/course.store'
 import { api } from '@/utils/request'
+import { useToast } from '@/composables/useToast'
 
 interface Assignment {
   id: number
@@ -106,6 +107,7 @@ interface Assignment {
 }
 
 const courseStore = useCourseStore()
+const toast = useToast()
 
 const form = ref({
   courseId: null as number | null,
@@ -169,7 +171,7 @@ const deleteAssignment = async (id: number) => {
     await loadAssignments()
   } catch (e) {
     console.error('删除失败:', e)
-    alert('删除失败')
+    toast.error('删除失败')
   }
 }
 

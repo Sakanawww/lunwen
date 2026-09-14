@@ -120,6 +120,16 @@
         </div>
       </div>
     </div>
+
+    <ConfirmDialog
+      v-model:visible="showConfirm"
+      :title="confirmAction?.type === 'delete' ? '删除课程' : '退出课程'"
+      :message="confirmAction?.type === 'delete' ? `确定要删除课程「${confirmAction?.course?.name}」吗？所有关联数据将被清除。` : `确定要退出课程「${confirmAction?.course?.name}」吗？`"
+      type="danger"
+      :confirm-text="confirmAction?.type === 'delete' ? '删除' : '退出'"
+      @confirm="doConfirmAction"
+      @cancel="showConfirm = false"
+    />
   </div>
 </template>
 
@@ -129,6 +139,8 @@ import { useCourseStore } from '@/stores/course.store'
 import { useAuthStore } from '@/stores/auth.store'
 import { api } from '@/utils/request'
 import { useRouter } from 'vue-router'
+import { useToast } from '@/composables/useToast'
+import ConfirmDialog from '@/components/ConfirmDialog.vue'
 
 interface CourseItem {
   id: number
@@ -142,6 +154,7 @@ interface CourseItem {
 const courseStore = useCourseStore()
 const authStore = useAuthStore()
 const router = useRouter()
+const toast = useToast()
 
 const user = computed(() => authStore.user)
 const courses = computed(() => courseStore.courses as unknown as CourseItem[])
@@ -159,6 +172,9 @@ const courseForm = reactive({
   code: '',
   description: '',
 })
+
+const showConfirm = ref(false)
+const confirmAction = ref<{ type: 'delete' | 'unenroll'; course: any } | null>(null)
 
 const roleLabel = (role: string) => {
   const map: Record<string, string> = {
@@ -220,31 +236,47 @@ const saveCourse = async () => {
     await courseStore.fetchCourses()
   } catch (e) {
     console.error('保存课程失败:', e)
-    alert('保存失败，请重试')
+    toast.error('保存失败，请重试')
   } finally {
     saving.value = false
   }
 }
 
 const deleteCourse = async (course: CourseItem) => {
-  if (!confirm(`确定要删除课程「${course.name}」吗？所有关联数据将被清除。`)) return
-  try {
-    await api.delete(`/api/courses/${course.id}`)
-    await courseStore.fetchCourses()
-  } catch (e) {
-    console.error('删除课程失败:', e)
-    alert('删除失败')
-  }
+  confirmAction.value = { type: 'delete', course }
+  showConfirm.value = true
+  return
 }
 
 const unenroll = async (course: CourseItem) => {
-  if (!confirm(`确定要退出课程「${course.name}」吗？`)) return
+  confirmAction.value = { type: 'unenroll', course }
+  showConfirm.value = true
+  return
+}
+
+const doConfirmAction = async () => {
+  const action = confirmAction.value
+  showConfirm.value = false
+  if (!action) return
+  const course = action.course as CourseItem
   try {
-    await api.post('/api/courses/enroll', { course_id: course.id, undo: true })
-    await courseStore.fetchCourses()
+    if (action.type === 'delete') {
+      await api.delete(`/api/courses/${course.id}`)
+      await courseStore.fetchCourses()
+    } else if (action.type === 'unenroll') {
+      await api.post('/api/courses/enroll', { course_id: course.id, undo: true })
+      await courseStore.fetchCourses()
+    }
   } catch (e) {
-    console.error('退课失败:', e)
-    alert('退课失败')
+    if (action.type === 'delete') {
+      console.error('删除课程失败:', e)
+      toast.error('删除失败')
+    } else {
+      console.error('退课失败:', e)
+      toast.error('退课失败')
+    }
+  } finally {
+    confirmAction.value = null
   }
 }
 

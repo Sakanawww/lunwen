@@ -4,7 +4,8 @@ from sqlalchemy.orm import Session as OrmSession
 
 from app.agents.question_agent import generate_questions
 from app.core.database import get_db
-from app.core.deps import current_user, require_role
+from app.core.course_deps import require_course_role, course_role
+from app.core.deps import current_user
 from app.models import models as m
 from app.schemas.schemas import QuestionGenIn
 
@@ -13,7 +14,7 @@ router = APIRouter(prefix="/api/question", tags=["试题生成"])
 
 @router.post("/generate")
 def gen_questions(body: QuestionGenIn, db: OrmSession = Depends(get_db),
-                  user: m.User = Depends(require_role("teacher", "admin"))):
+                  user: m.User = Depends(require_course_role("teacher", "assistant"))):
     """依据课程、知识点与难度批量生成试题并入库。"""
     course = db.get(m.Course, body.course_id)
     course_name = course.name if course else ""
@@ -38,7 +39,7 @@ def gen_questions(body: QuestionGenIn, db: OrmSession = Depends(get_db),
 
 @router.get("/list/{course_id}")
 def list_questions(course_id: int, db: OrmSession = Depends(get_db),
-                   user: m.User = Depends(current_user)):
+                   user: m.User = Depends(require_course_role("student", "teacher", "assistant"))):
     qs = db.query(m.Question).filter(
         m.Question.course_id == course_id, m.Question.is_deleted == 0).all()
     return [
@@ -50,7 +51,7 @@ def list_questions(course_id: int, db: OrmSession = Depends(get_db),
 
 @router.get("/deleted/{course_id}")
 def list_deleted_questions(course_id: int, db: OrmSession = Depends(get_db),
-                           user: m.User = Depends(require_role("teacher", "admin"))):
+                           user: m.User = Depends(require_course_role("teacher", "assistant"))):
     """回收站：指定课程已删除题目。"""
     qs = db.query(m.Question).filter(
         m.Question.course_id == course_id, m.Question.is_deleted == 1).all()
@@ -64,11 +65,16 @@ def list_deleted_questions(course_id: int, db: OrmSession = Depends(get_db),
 @router.delete("/{question_id}")
 def delete_question(question_id: int, request: Request, permanent: int = 0,
                     db: OrmSession = Depends(get_db),
-                    user: m.User = Depends(require_role("teacher", "admin"))):
+                    user: m.User = Depends(current_user)):
     """删除题目。默认软删除（进回收站），?permanent=1 则彻底删除。"""
     q = db.get(m.Question, question_id)
     if not q:
         raise HTTPException(status_code=404, detail="题目不存在")
+    # 校验课程归属
+    if user.role != "admin":
+        role = course_role(user.id, q.course_id, db)
+        if role is None or role not in ("owner", "teacher", "assistant"):
+            raise HTTPException(status_code=403, detail="无权删除该课程题目")
     from datetime import datetime
 
     from app.utils.logging import write_log
@@ -88,11 +94,16 @@ def delete_question(question_id: int, request: Request, permanent: int = 0,
 
 @router.post("/{question_id}/restore")
 def restore_question(question_id: int, db: OrmSession = Depends(get_db),
-                     user: m.User = Depends(require_role("teacher", "admin"))):
+                     user: m.User = Depends(current_user)):
     """从回收站恢复题目。"""
     q = db.get(m.Question, question_id)
     if not q:
         raise HTTPException(status_code=404, detail="题目不存在")
+    # 校验课程归属
+    if user.role != "admin":
+        role = course_role(user.id, q.course_id, db)
+        if role is None or role not in ("owner", "teacher", "assistant"):
+            raise HTTPException(status_code=403, detail="无权恢复该课程题目")
     q.is_deleted = 0
     q.deleted_at = None
     db.commit()

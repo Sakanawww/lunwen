@@ -30,8 +30,10 @@ CREATE TABLE students (
   id          BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY COMMENT '学生ID',
   user_id     BIGINT UNSIGNED NOT NULL COMMENT '对应用户ID',
   student_no  VARCHAR(20) NOT NULL UNIQUE COMMENT '学号',
-  class_name  VARCHAR(50) COMMENT '班级',
-  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  class_name  VARCHAR(50) COMMENT '班级(旧字段，保留兼容)',
+  class_id    BIGINT UNSIGNED COMMENT '班级ID(关联classes.id)',
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE SET NULL
 ) ENGINE=InnoDB COMMENT='学生表';
 
 -- ---------------------------------------------------------------------
@@ -237,3 +239,86 @@ CREATE TABLE system_logs (
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '操作时间',
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB COMMENT='系统日志表';
+
+-- ---------------------------------------------------------------------
+-- 17. 班级表（功能扩展：班级实体，独立于课程）
+-- ---------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS classes (
+  id         BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY COMMENT '班级ID',
+  name       VARCHAR(50) NOT NULL UNIQUE COMMENT '班级名称',
+  grade      VARCHAR(20) COMMENT '年级',
+  major      VARCHAR(100) COMMENT '专业',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间'
+) ENGINE=InnoDB COMMENT='班级表';
+
+-- ---------------------------------------------------------------------
+-- 18. 班级课程关联表（班级 ↔ 课程多对多：授课班级）
+-- ---------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS class_courses (
+  id        BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY COMMENT '关联ID',
+  class_id  BIGINT UNSIGNED NOT NULL COMMENT '班级ID',
+  course_id BIGINT UNSIGNED NOT NULL COMMENT '课程ID',
+  UNIQUE KEY uk_class_course (class_id, course_id),
+  FOREIGN KEY (class_id)  REFERENCES classes(id)  ON DELETE CASCADE,
+  FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE
+) ENGINE=InnoDB COMMENT='班级课程关联表';
+
+-- ---------------------------------------------------------------------
+-- 19. 考勤课次表（教师为某课程在某日发起的一次考勤）
+-- ---------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS attendance_sessions (
+  id           BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY COMMENT '考勤课次ID',
+  course_id    BIGINT UNSIGNED NOT NULL COMMENT '所属课程',
+  session_date DATE NOT NULL COMMENT '考勤日期',
+  status       ENUM('open','closed') NOT NULL DEFAULT 'open' COMMENT '签到状态',
+  created_by   BIGINT UNSIGNED COMMENT '发起教师(users.id)',
+  created_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  FOREIGN KEY (course_id)  REFERENCES courses(id) ON DELETE CASCADE,
+  FOREIGN KEY (created_by) REFERENCES users(id)   ON DELETE SET NULL
+) ENGINE=InnoDB COMMENT='考勤课次表';
+
+-- ---------------------------------------------------------------------
+-- 20. 签到明细表（每名学生在某次考勤课次中的出勤状态）
+-- ---------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS attendance_records (
+  id          BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY COMMENT '记录ID',
+  session_id  BIGINT UNSIGNED NOT NULL COMMENT '所属考勤课次',
+  student_id  BIGINT UNSIGNED NOT NULL COMMENT '学生(users.id)',
+  status      ENUM('present','late','leave','absent') NOT NULL DEFAULT 'absent' COMMENT '出勤/迟到/请假/旷课',
+  signed_at   DATETIME COMMENT '签到时间',
+  UNIQUE KEY uk_attendance (session_id, student_id),
+  FOREIGN KEY (session_id) REFERENCES attendance_sessions(id) ON DELETE CASCADE,
+  FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB COMMENT='签到明细表';
+
+-- ---------------------------------------------------------------------
+-- 21. 平时分表（四维子分 + 加权总分，物化存储）
+-- ---------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS performance_scores (
+  id                BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY COMMENT '记录ID',
+  course_id         BIGINT UNSIGNED NOT NULL COMMENT '所属课程',
+  student_id        BIGINT UNSIGNED NOT NULL COMMENT '学生(users.id)',
+  attendance_score  DECIMAL(5,2) DEFAULT 0 COMMENT '出勤维度得分 0-100',
+  assignment_score  DECIMAL(5,2) DEFAULT 0 COMMENT '作业维度得分 0-100',
+  practice_score    DECIMAL(5,2) DEFAULT 0 COMMENT '练习维度得分 0-100',
+  engagement_score  DECIMAL(5,2) DEFAULT 0 COMMENT '答疑活跃度得分 0-100',
+  total_score       DECIMAL(5,2) DEFAULT 0 COMMENT '加权总分 0-100',
+  updated_at        DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  UNIQUE KEY uk_perf (course_id, student_id),
+  FOREIGN KEY (course_id)  REFERENCES courses(id) ON DELETE CASCADE,
+  FOREIGN KEY (student_id) REFERENCES users(id)   ON DELETE CASCADE
+) ENGINE=InnoDB COMMENT='平时分表';
+
+-- ---------------------------------------------------------------------
+-- 22. 课程公告表（教师发布，面向选课学生）
+-- ---------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS announcements (
+  id         BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY COMMENT '公告ID',
+  course_id  BIGINT UNSIGNED NOT NULL COMMENT '所属课程',
+  title      VARCHAR(200) NOT NULL COMMENT '公告标题',
+  content    TEXT COMMENT '公告内容',
+  created_by BIGINT UNSIGNED COMMENT '发布者(users.id)',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '发布时间',
+  FOREIGN KEY (course_id)  REFERENCES courses(id) ON DELETE CASCADE,
+  FOREIGN KEY (created_by) REFERENCES users(id)   ON DELETE SET NULL
+) ENGINE=InnoDB COMMENT='课程公告表';

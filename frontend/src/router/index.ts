@@ -36,6 +36,12 @@ const routes: RouteRecordRaw[] = [
         meta: { roles: ['teacher', 'admin'] },
       },
       {
+        path: 'dashboard/students/:id',
+        name: 'StudentDetail',
+        component: () => import('@/views/StudentDetailView.vue'),
+        meta: { roles: ['teacher', 'admin'] },
+      },
+      {
         path: 'chat',
         name: 'Chat',
         component: () => import('@/views/ChatView.vue'),
@@ -45,6 +51,12 @@ const routes: RouteRecordRaw[] = [
         path: 'knowledge',
         name: 'Knowledge',
         component: () => import('@/views/KnowledgeView.vue'),
+        meta: { roles: ['teacher', 'admin'] },
+      },
+      {
+        path: 'knowledge/:docId',
+        name: 'KnowledgeDoc',
+        component: () => import('@/views/KnowledgeDocView.vue'),
         meta: { roles: ['teacher', 'admin'] },
       },
       {
@@ -82,6 +94,48 @@ const routes: RouteRecordRaw[] = [
         name: 'Practice',
         component: () => import('@/views/PracticeView.vue'),
         meta: { roles: ['student', 'teacher', 'admin'] },
+      },
+      {
+        path: 'practice/:questionId',
+        name: 'PracticeQuestion',
+        component: () => import('@/views/PracticeQuestionView.vue'),
+        meta: { roles: ['student', 'teacher', 'admin'] },
+      },
+      {
+        path: 'attendance',
+        name: 'Attendance',
+        component: () => import('@/views/AttendanceView.vue'),
+        meta: { roles: ['teacher', 'admin'] },
+      },
+      {
+        path: 'attendance/sessions/:id',
+        name: 'AttendanceSession',
+        component: () => import('@/views/AttendanceSessionView.vue'),
+        meta: { roles: ['teacher', 'admin'] },
+      },
+      {
+        path: 'performance',
+        name: 'Performance',
+        component: () => import('@/views/PerformanceView.vue'),
+        meta: { roles: ['teacher', 'admin'] },
+      },
+      {
+        path: 'performance/diagnose/:studentId',
+        name: 'PerformanceDiagnose',
+        component: () => import('@/views/PerformanceDiagnoseView.vue'),
+        meta: { roles: ['teacher', 'admin'] },
+      },
+      {
+        path: 'announcements',
+        name: 'Announcements',
+        component: () => import('@/views/AnnouncementsView.vue'),
+        meta: { roles: ['student', 'teacher', 'admin'] },
+      },
+      {
+        path: 'my-performance',
+        name: 'MyPerformance',
+        component: () => import('@/views/MyPerformanceView.vue'),
+        meta: { roles: ['student'] },
       },
       {
         path: 'courses',

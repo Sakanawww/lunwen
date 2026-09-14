@@ -6,6 +6,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session as OrmSession
 
 from app.core.database import get_db
+from app.core.course_deps import require_course_role, course_role
 from app.core.deps import current_user
 from app.models import models as m
 
@@ -18,11 +19,8 @@ def _is_allowed(user: m.User) -> bool:
 
 @router.get("/{course_id}/students")
 def course_students(course_id: int, db: OrmSession = Depends(get_db),
-                    user: m.User = Depends(current_user)):
+                    user: m.User = Depends(require_course_role("teacher", "assistant"))):
     """某课程的选课学生明细（教师/管理员看板）。含学生个人信息与学习统计。"""
-    if not _is_allowed(user):
-        from fastapi import HTTPException
-        raise HTTPException(status_code=403, detail="无权限")
     course = db.get(m.Course, course_id)
     if not course:
         from fastapi import HTTPException
@@ -70,6 +68,20 @@ def course_students(course_id: int, db: OrmSession = Depends(get_db),
         .all()
     )
     msg_map = {s.sid: s.cnt for s in msg_stmt}
+    grade_stmt = (
+        db.query(
+            m.Submission.student_id.label("sid"),
+            func.avg(m.GradingRecord.score).label("avg_grade"),
+            func.count(m.GradingRecord.id).label("graded_cnt"),
+        )
+        .join(m.Assignment, m.Submission.assignment_id == m.Assignment.id)
+        .join(m.GradingRecord, m.GradingRecord.submission_id == m.Submission.id)
+        .filter(m.Assignment.course_id == course_id,
+                m.Submission.student_id.in_(ids) if ids else False)
+        .group_by(m.Submission.student_id)
+        .all()
+    )
+    grade_map = {s.sid: s for s in grade_stmt}
 
     data = []
     for uid in sorted(ids):
@@ -79,6 +91,7 @@ def course_students(course_id: int, db: OrmSession = Depends(get_db),
         stu = db.query(m.Student).filter(m.Student.user_id == uid).first()
         subs = sub_map.get(uid)
         lr = lr_map.get(uid)
+        gr = grade_map.get(uid)
         total = (lr.cnt if lr and lr.cnt else 0) or 0
         ok = (lr.ok if lr and lr.ok else 0) or 0
         data.append({
@@ -89,6 +102,7 @@ def course_students(course_id: int, db: OrmSession = Depends(get_db),
             "class_name": stu.class_name if stu else "",
             "submissions": int(subs.subs) if subs and subs.subs else 0,
             "graded": int(subs.graded) if subs and subs.graded else 0,
+            "avg_grade": round(float(gr.avg_grade), 1) if gr and gr.avg_grade is not None else None,
             "practice_count": total,
             "accuracy": round(float(ok) / total,
                               3) if total else None,  # 0-1，前端转百分数
@@ -97,9 +111,105 @@ def course_students(course_id: int, db: OrmSession = Depends(get_db),
     return {"course_id": course_id, "course_name": course.name, "students": data}
 
 
+@router.get("/students/{student_id}/detail")
+def student_detail(student_id: int, course_id: int, db: OrmSession = Depends(get_db),
+                   user: m.User = Depends(require_course_role("teacher", "assistant"))):
+    """单个学生的学习详情（二级页）：基本信息 + 作业提交明细 + 练习记录 + 平时分。"""
+    from app.api.performance import _compute_one
+    u = db.get(m.User, student_id)
+    if not u:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="学生不存在")
+    stu = db.query(m.Student).filter(m.Student.user_id == student_id).first()
+
+    # 作业提交明细
+    subs = (
+        db.query(m.Submission, m.Assignment, m.GradingRecord)
+        .join(m.Assignment, m.Submission.assignment_id == m.Assignment.id)
+        .outerjoin(m.GradingRecord, m.GradingRecord.submission_id == m.Submission.id)
+        .filter(m.Assignment.course_id == course_id, m.Submission.student_id == student_id)
+        .order_by(m.Submission.submitted_at.desc())
+        .all()
+    )
+    submission_list = []
+    for sub, asn, gr in subs:
+        submission_list.append({
+            "id": sub.id,
+            "assignment_title": asn.title if asn else "",
+            "status": sub.status,
+            "score": float(gr.score) if gr and gr.score is not None else None,
+            "feedback": gr.feedback if gr else None,
+            "submitted_at": sub.submitted_at.strftime("%Y-%m-%d %H:%M") if sub.submitted_at else None,
+        })
+
+    # 练习记录
+    lr_rows = (
+        db.query(m.LearningRecord, m.Question)
+        .join(m.Question, m.LearningRecord.question_id == m.Question.id)
+        .filter(m.LearningRecord.course_id == course_id, m.LearningRecord.student_id == student_id)
+        .order_by(m.LearningRecord.created_at.desc())
+        .limit(30)
+        .all()
+    )
+    practice_list = []
+    for lr, q in lr_rows:
+        practice_list.append({
+            "id": lr.id,
+            "stem": q.stem[:60] if q.stem else "",
+            "type": q.type,
+            "is_correct": bool(lr.is_correct),
+            "created_at": lr.created_at.strftime("%Y-%m-%d %H:%M") if lr.created_at else None,
+        })
+
+    # 平时分
+    perf = _compute_one(db, course_id, student_id)
+
+    # 考勤摘要
+    att_recs = (
+        db.query(m.AttendanceRecord, m.AttendanceSession)
+        .join(m.AttendanceSession, m.AttendanceRecord.session_id == m.AttendanceSession.id)
+        .filter(m.AttendanceSession.course_id == course_id, m.AttendanceRecord.student_id == student_id)
+        .all()
+    )
+    att_total = len(att_recs)
+    att_present = sum(1 for r, _ in att_recs if r.status == "present")
+    att_late = sum(1 for r, _ in att_recs if r.status == "late")
+    att_absent = sum(1 for r, _ in att_recs if r.status == "absent")
+    att_leave = sum(1 for r, _ in att_recs if r.status == "leave")
+
+    # 提问数
+    question_count = (
+        db.query(func.count(m.Message.id))
+        .join(m.Session, m.Message.session_id == m.Session.id)
+        .filter(m.Session.course_id == course_id, m.Session.user_id == student_id, m.Message.role == "user")
+        .scalar()
+    ) or 0
+
+    course = db.get(m.Course, course_id)
+    return {
+        "course_id": course_id,
+        "course_name": course.name if course else "",
+        "student": {
+            "user_id": student_id,
+            "username": u.username,
+            "real_name": u.real_name,
+            "student_no": stu.student_no if stu else "",
+            "class_name": stu.class_name if stu else "",
+        },
+        "submissions": submission_list,
+        "practices": practice_list,
+        "performance": perf,
+        "attendance": {
+            "total": att_total, "present": att_present, "late": att_late,
+            "absent": att_absent, "leave": att_leave,
+        },
+        "question_count": question_count,
+    }
+
+
 @router.get("/course/{course_id}")
 def course_stats(course_id: int, db: OrmSession = Depends(get_db),
-                 user: m.User = Depends(current_user)):
+                 user: m.User = Depends(require_course_role("teacher", "assistant"))):
     """某课程总体学情统计（教师/管理员看板）。"""
     total_students = (
         db.query(func.count(m.Enrollment.id))
@@ -245,11 +355,8 @@ def _trend(db: OrmSession, course_id: int, days: int):
 @router.get("/overview")
 def dashboard_overview(course_id: int, range: int = 30,
                        db: OrmSession = Depends(get_db),
-                       user: m.User = Depends(current_user)):
+                       user: m.User = Depends(require_course_role("teacher", "assistant"))):
     """看板聚合数据：核心指标 + 四图表数据 + 热门问题 + 最近动态。"""
-    if not _is_allowed(user):
-        from fastapi import HTTPException
-        raise HTTPException(status_code=403, detail="无权限")
     course = db.get(m.Course, course_id)
     if not course:
         from fastapi import HTTPException
@@ -388,17 +495,51 @@ def dashboard_overview(course_id: int, range: int = 30,
         "kb_usage": kb_usage,
         "hot_questions": hot_questions,
         "activities": activities,
+        "attendance": _attendance_summary(db, course_id),
+        "performance": _performance_summary(db, course_id),
     }
+
+
+def _attendance_summary(db: OrmSession, course_id: int) -> dict:
+    """看板内嵌的考勤摘要：总出勤率 + 考勤课次数。"""
+    sessions = db.query(m.AttendanceSession).filter(
+        m.AttendanceSession.course_id == course_id).all()
+    session_count = len(sessions)
+    total_records = (db.query(func.count(m.AttendanceRecord.id))
+                     .join(m.AttendanceSession, m.AttendanceRecord.session_id == m.AttendanceSession.id)
+                     .filter(m.AttendanceSession.course_id == course_id).scalar()) or 0
+    present_records = (db.query(func.count(m.AttendanceRecord.id))
+                       .join(m.AttendanceSession, m.AttendanceRecord.session_id == m.AttendanceSession.id)
+                       .filter(m.AttendanceSession.course_id == course_id,
+                               m.AttendanceRecord.status.in_(("present", "late"))).scalar()) or 0
+    rate = round(present_records / total_records * 100, 1) if total_records else 0
+    return {"session_count": session_count, "attendance_rate": rate}
+
+
+def _performance_summary(db: OrmSession, course_id: int) -> dict:
+    """看板内嵌的平时分摘要：平均总分 + 学生数。"""
+    student_ids = {r.user_id for r in db.query(m.CourseUser).filter(
+        m.CourseUser.course_id == course_id, m.CourseUser.role == "student").all()}
+    student_ids.update(r.student_id for r in db.query(m.Enrollment).filter(
+        m.Enrollment.course_id == course_id).all())
+    student_ids = {uid for uid in student_ids if uid}
+    if not student_ids:
+        return {"avg_total": 0, "student_count": 0}
+    # 实时计算平均总分
+    from app.api.performance import _compute_one
+    totals = []
+    for uid in student_ids:
+        data = _compute_one(db, course_id, uid)
+        totals.append(float(data["total_score"]))
+    avg_total = round(sum(totals) / len(totals), 1) if totals else 0
+    return {"avg_total": avg_total, "student_count": len(student_ids)}
 
 
 @router.get("/{course_id}/hot-questions")
 def hot_questions(course_id: int, kw: str = "", limit: int = 60,
                   db: OrmSession = Depends(get_db),
-                  user: m.User = Depends(current_user)):
+                  user: m.User = Depends(require_course_role("teacher", "assistant"))):
     """热门问题全部列表（二级页）：按提问次数倒序，可分页；支持关键词过滤。"""
-    if not _is_allowed(user):
-        from fastapi import HTTPException
-        raise HTTPException(status_code=403, detail="无权限")
     course = db.get(m.Course, course_id)
     if not course:
         from fastapi import HTTPException

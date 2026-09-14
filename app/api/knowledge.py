@@ -3,7 +3,8 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, Uplo
 from sqlalchemy.orm import Session as OrmSession
 
 from app.core.database import get_db
-from app.core.deps import current_user, require_role
+from app.core.course_deps import require_course_role, course_role
+from app.core.deps import current_user
 from app.kb.knowledge_base import ingest_file, KnowledgeBase
 from app.models import models as m
 from app.utils.logging import write_log
@@ -17,12 +18,12 @@ async def upload(
     course_id: int = Form(...),
     file: UploadFile = File(...),
     db: OrmSession = Depends(get_db),
-    user: m.User = Depends(require_role("teacher", "admin")),
+    user: m.User = Depends(require_course_role("teacher", "assistant")),
 ):
     """教师上传课程资料（txt/md/pdf），切块并向量化，写入知识库。"""
     course = db.get(m.Course, course_id)
     if not course:
-        return {"msg": "课程不存在", "code": 1}
+        raise HTTPException(status_code=404, detail="课程不存在")
 
     path = _save_upload(file)
     result = ingest_file(path, db, course_id=course_id, upload_by=user.id)
@@ -43,7 +44,7 @@ def _save_upload(file: UploadFile):
 
 @router.get("/docs/{course_id}")
 def list_docs(course_id: int, db: OrmSession = Depends(get_db),
-              user: m.User = Depends(current_user)):
+              user: m.User = Depends(require_course_role("student", "teacher", "assistant"))):
     docs = db.query(m.KnowledgeDoc).filter(m.KnowledgeDoc.course_id == course_id).all()
     return [
         {"id": d.id, "title": d.title, "chunk_num": d.chunk_num,
@@ -59,6 +60,11 @@ def preview_doc(doc_id: int, db: OrmSession = Depends(get_db),
     doc = db.get(m.KnowledgeDoc, doc_id)
     if not doc:
         raise HTTPException(404, "文档不存在")
+    # 校验课程归属
+    if user.role != "admin":
+        role = course_role(user.id, doc.course_id, db)
+        if role is None:
+            raise HTTPException(403, "无权访问该课程文档")
     chunks = (db.query(m.KnowledgeChunk)
               .filter(m.KnowledgeChunk.doc_id == doc_id)
               .order_by(m.KnowledgeChunk.seq.asc())
@@ -75,7 +81,7 @@ def preview_doc(doc_id: int, db: OrmSession = Depends(get_db),
 
 @router.delete("/doc/{doc_id}")
 def delete_doc(doc_id: int, request: Request, db: OrmSession = Depends(get_db),
-               user: m.User = Depends(require_role("teacher", "admin"))):
+               user: m.User = Depends(current_user)):
     """删除知识库文档及其文本块，并从 FAISS 索引中移除对应向量。
 
     FAISS 不支持按 id 原地删除，因此删除后用该课程残存的文本块重建索引。
@@ -83,6 +89,11 @@ def delete_doc(doc_id: int, request: Request, db: OrmSession = Depends(get_db),
     doc = db.get(m.KnowledgeDoc, doc_id)
     if not doc:
         raise HTTPException(404, "文档不存在")
+    # 校验课程归属
+    if user.role != "admin":
+        role = course_role(user.id, doc.course_id, db)
+        if role is None or role not in ("owner", "teacher", "assistant"):
+            raise HTTPException(403, "无权删除该课程文档")
 
     course_id = doc.course_id
     title = doc.title

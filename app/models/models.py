@@ -1,4 +1,4 @@
-"""ORM 模型 —— 与 database/schema.sql 中 16 张表一一对应。"""
+"""ORM 模型 —— 与 database/schema.sql 对应（含功能扩展新增表）。"""
 from datetime import datetime
 
 from sqlalchemy import (
@@ -35,6 +35,7 @@ class Student(Base):
     user_id = Column(BigInteger, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     student_no = Column(String(20), nullable=False, unique=True)
     class_name = Column(String(50))
+    class_id = Column(BigInteger, ForeignKey("classes.id", ondelete="SET NULL"))
 
 
 class Teacher(Base):
@@ -201,4 +202,81 @@ class SystemLog(Base):
     detail = Column(Text)
     status = Column(String(20), default="success")
     ip = Column(String(45))
+    created_at = Column(DateTime, server_default=func.now())
+
+
+# ===== 功能扩展新增模型 =====
+
+
+class Class(Base):
+    """班级实体：独立于课程，学生归属班级，课程可关联授课班级。"""
+
+    __tablename__ = "classes"
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    name = Column(String(50), nullable=False, unique=True, comment="班级名称")
+    grade = Column(String(20), comment="年级")
+    major = Column(String(100), comment="专业")
+    created_at = Column(DateTime, server_default=func.now())
+
+
+class ClassCourse(Base):
+    """班级 ↔ 课程多对多：标记某门课程面向哪些班级授课。"""
+
+    __tablename__ = "class_courses"
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    class_id = Column(BigInteger, ForeignKey("classes.id", ondelete="CASCADE"), nullable=False)
+    course_id = Column(BigInteger, ForeignKey("courses.id", ondelete="CASCADE"), nullable=False)
+    __table_args__ = (UniqueConstraint("class_id", "course_id", name="uk_class_course"),)
+
+
+class AttendanceSession(Base):
+    """考勤课次：教师为某课程在某日发起的一次考勤。"""
+
+    __tablename__ = "attendance_sessions"
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    course_id = Column(BigInteger, ForeignKey("courses.id", ondelete="CASCADE"), nullable=False)
+    session_date = Column(Date, nullable=False, comment="考勤日期")
+    status = Column(Enum("open", "closed"), nullable=False, default="open", comment="签到状态")
+    created_by = Column(BigInteger, ForeignKey("users.id", ondelete="SET NULL"))
+    created_at = Column(DateTime, server_default=func.now())
+
+
+class AttendanceRecord(Base):
+    """签到明细：每名学生在某次考勤课次中的出勤状态。"""
+
+    __tablename__ = "attendance_records"
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    session_id = Column(BigInteger, ForeignKey("attendance_sessions.id", ondelete="CASCADE"), nullable=False)
+    student_id = Column(BigInteger, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    status = Column(Enum("present", "late", "leave", "absent"), nullable=False, default="absent",
+                    comment="出勤/迟到/请假/旷课")
+    signed_at = Column(DateTime)
+    __table_args__ = (UniqueConstraint("session_id", "student_id", name="uk_attendance"),)
+
+
+class PerformanceScore(Base):
+    """平时分：四维子分 + 加权总分，物化存储便于历史对比与看板展示。"""
+
+    __tablename__ = "performance_scores"
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    course_id = Column(BigInteger, ForeignKey("courses.id", ondelete="CASCADE"), nullable=False)
+    student_id = Column(BigInteger, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    attendance_score = Column(DECIMAL(5, 2), default=0, comment="出勤维度得分 0-100")
+    assignment_score = Column(DECIMAL(5, 2), default=0, comment="作业维度得分 0-100")
+    practice_score = Column(DECIMAL(5, 2), default=0, comment="练习维度得分 0-100")
+    engagement_score = Column(DECIMAL(5, 2), default=0, comment="答疑活跃度得分 0-100")
+    total_score = Column(DECIMAL(5, 2), default=0, comment="加权总分 0-100")
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    __table_args__ = (UniqueConstraint("course_id", "student_id", name="uk_perf"),)
+
+
+class Announcement(Base):
+    """课程公告：教师发布，面向选课学生。"""
+
+    __tablename__ = "announcements"
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    course_id = Column(BigInteger, ForeignKey("courses.id", ondelete="CASCADE"), nullable=False)
+    title = Column(String(200), nullable=False)
+    content = Column(Text)
+    created_by = Column(BigInteger, ForeignKey("users.id", ondelete="SET NULL"))
     created_at = Column(DateTime, server_default=func.now())

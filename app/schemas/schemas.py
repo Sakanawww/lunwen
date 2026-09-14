@@ -119,3 +119,49 @@ class AssignmentCreateIn(BaseModel):
 
 class SubmissionCreateIn(BaseModel):
     content: str = Field(..., min_length=1, max_length=20000)
+
+
+# ---------- 班级管理 ----------
+class ClassIn(BaseModel):
+    name: str = Field(..., min_length=1, max_length=50)
+    grade: Optional[str] = Field(None, max_length=20)
+    major: Optional[str] = Field(None, max_length=100)
+
+
+class ClassCourseIn(BaseModel):
+    """班级关联课程。"""
+    class_id: int
+    course_id: int
+    undo: bool = False
+
+
+# ---------- 考勤管理 ----------
+class AttendanceSessionCreateIn(BaseModel):
+    course_id: int
+    session_date: Optional[str] = None  # YYYY-MM-DD，默认今天
+
+
+class AttendanceSignIn(BaseModel):
+    """学生签到。"""
+    session_id: int
+    status: str = Field("present", pattern="^(present|late|leave|absent)$")
+
+
+class AttendanceUpdateIn(BaseModel):
+    """教师修正签到状态。"""
+    record_id: int
+    status: str = Field(..., pattern="^(present|late|leave|absent)$")
+
+
+# ---------- 平时分 / 学情诊断 ----------
+class PerformanceDiagnoseIn(BaseModel):
+    """学情诊断请求：指定课程与学生。"""
+    course_id: int
+    student_id: int
+
+
+# ---------- 课程公告 ----------
+class AnnouncementIn(BaseModel):
+    course_id: int
+    title: str = Field(..., min_length=1, max_length=200)
+    content: Optional[str] = Field(None, max_length=5000)

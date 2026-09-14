@@ -56,6 +56,8 @@ ROUTE_KEYWORDS = {
     "答疑Agent": ["答疑", "问题", "不会", "讲解", "概念", "含义", "为什么", "是什么", "什么意思"],
     "批改Agent": ["批改", "评分", "作业", "评语", "打分", "分数"],
     "出题Agent": ["出题", "试题", "测验", "题目", "组卷", "练习题"],
+    "考勤预警Agent": ["缺勤", "旷课", "考勤", "出勤率", "预警", "提醒", "出勤"],
+    "学情分析Agent": ["学情", "表现", "诊断", "平时分", "建议", "分析报告", "学习情况"],
 }
 
 
@@ -129,10 +131,37 @@ def question_node(state: AgentState) -> AgentState:
     return {**state, "result": {"questions": generate_questions(state["question"], 3, 3)}}
 
 
+def attendance_node(state: AgentState) -> AgentState:
+    """考勤预警 Agent 节点：对连续缺勤学生生成预警提醒。
+
+    注意：该节点需要外部注入缺勤学生数据（state["absent_students"]），
+    在实际 API 调用中由后端组装。图内节点用于论文架构对照。
+    """
+    from app.agents.attendance_agent import generate_warnings
+
+    students = state.get("absent_students") or []
+    warnings = generate_warnings(students)
+    return {**state, "result": {"warnings": warnings}}
+
+
+def performance_node(state: AgentState) -> AgentState:
+    """学情分析 Agent 节点：基于多维数据生成自然语言诊断。
+
+    注意：该节点需要外部注入学生平时分数据（state["perf_data"]），
+    在实际 API 调用中由后端组装。图内节点用于论文架构对照。
+    """
+    from app.agents.performance_agent import diagnose
+
+    data = state.get("perf_data") or {}
+    diagnosis = diagnose(data)
+    return {**state, "result": {"diagnosis": diagnosis}}
+
+
 # ---------------------------------------------------------------------------
 # 5. 条件边
 # ---------------------------------------------------------------------------
-def route_by_intent(state: AgentState) -> Literal["答疑Agent", "批改Agent", "出题Agent"]:
+def route_by_intent(state: AgentState) -> Literal["答疑Agent", "批改Agent", "出题Agent",
+                                                     "考勤预警Agent", "学情分析Agent"]:
     return state["intent"]
 
 
@@ -145,6 +174,8 @@ _builder.add_node("router", router_node)
 _builder.add_node("答疑Agent", tutor_node)
 _builder.add_node("批改Agent", grader_node)
 _builder.add_node("出题Agent", question_node)
+_builder.add_node("考勤预警Agent", attendance_node)
+_builder.add_node("学情分析Agent", performance_node)
 _builder.add_node("retrieval_tool", retrieval_tool_node)
 
 _builder.set_entry_point("router")
@@ -155,11 +186,15 @@ _builder.add_conditional_edges(
         "答疑Agent": "答疑Agent",
         "批改Agent": "批改Agent",
         "出题Agent": "出题Agent",
+        "考勤预警Agent": "考勤预警Agent",
+        "学情分析Agent": "学情分析Agent",
     },
 )
 _builder.add_edge("答疑Agent", "retrieval_tool")
 _builder.add_edge("retrieval_tool", END)
 _builder.add_edge("批改Agent", END)
 _builder.add_edge("出题Agent", END)
+_builder.add_edge("考勤预警Agent", END)
+_builder.add_edge("学情分析Agent", END)
 
 graph = _builder.compile()

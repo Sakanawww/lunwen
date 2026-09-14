@@ -67,7 +67,7 @@
 
       <!-- 系统状态 -->
       <div class="card">
-        <h2 class="card-title"><i class="ri-server-line"></i> 系统状态</h2>
+        <h2 class="card-title"><i class="ri-server-line"></i> 系统状态 <span class="demo-label">演示数据</span></h2>
         <div class="status-grid">
           <div class="status-item">
             <span class="status-label">API 服务</span>
@@ -390,6 +390,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { api } from '@/utils/request'
+import { useToast } from '@/composables/useToast'
 
 interface User {
   id: number
@@ -405,6 +406,8 @@ interface LogEntry {
   level: 'INFO' | 'WARNING' | 'ERROR'
   message: string
 }
+
+const toast = useToast()
 
 const roleLabels: Record<string, string> = {
   student: '学生',
@@ -556,7 +559,7 @@ const deleteUser = async (user: User) => {
     await loadStats()
   } catch (error) {
     console.error('删除用户失败:', error)
-    alert('删除失败，可能权限不足或不能删除自己')
+    toast.error('删除失败，可能权限不足或不能删除自己')
   }
 }
 
@@ -582,16 +585,16 @@ const saveUser = async () => {
     await loadStats()
   } catch (error) {
     console.error('保存用户失败:', error)
-    alert('保存失败，请检查权限或网络')
+    toast.error('保存失败，请检查权限或网络')
   }
 }
 
 const saveLLMSettings = async () => {
-  alert('LLM 配置请通过 .env 环境变量修改，修改后重启服务生效')
+  toast.info('LLM 配置请通过 .env 环境变量修改，修改后重启服务生效')
 }
 
 const saveSystemSettings = async () => {
-  alert('系统配置请通过 .env 环境变量修改，修改后重启服务生效')
+  toast.info('系统配置请通过 .env 环境变量修改，修改后重启服务生效')
 }
 
 const formatDate = (dateStr: string) => {
@@ -728,6 +731,17 @@ onMounted(() => {
   i {
     color: rgb(var(--green));
   }
+}
+
+.demo-label {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-md);
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  background: rgba(245, 158, 11, 0.1);
+  color: rgb(184, 106, 0);
 }
 
 .status-grid {

@@ -121,105 +121,15 @@
         </table>
       </div>
     </div>
-
-    <!-- 练习弹窗 -->
-    <div
-      v-if="showPracticeModal"
-      class="modal-mask"
-      @click.self="closePractice"
-    >
-      <div class="modal-box modal-large" role="dialog" aria-modal="true">
-        <div class="modal-head">
-          <h3>{{ currentQuestion?.type === 'choice' ? '选择题' : currentQuestion?.type === 'fill' ? '填空题' : '简答题' }}</h3>
-          <button type="button" class="modal-x" @click="closePractice">
-            <i class="ri-close-line"></i>
-          </button>
-        </div>
-
-        <div class="modal-body">
-          <div class="question-stem">
-            <span class="difficulty-badge" :class="`diff-${currentQuestion?.difficulty}`">
-              难度：{{ currentQuestion?.difficulty }}
-            </span>
-            <p>{{ currentQuestion?.stem }}</p>
-          </div>
-
-          <!-- 选择题选项 -->
-          <div v-if="currentQuestion?.type === 'choice' && currentQuestion?.options" class="options-list">
-            <div
-              v-for="(option, key) in parseOptions(currentQuestion.options)"
-              :key="key"
-              class="option-item"
-              :class="{ selected: userAnswer === key }"
-              @click="selectOption(key)"
-            >
-              <span class="option-label">{{ key }}.</span>
-              <span class="option-text">{{ option }}</span>
-            </div>
-          </div>
-
-          <!-- 填空题/简答题输入 -->
-          <div v-else class="answer-input-wrap">
-            <textarea
-              v-model="userAnswer"
-              class="answer-textarea"
-              placeholder="请输入您的答案..."
-              rows="6"
-            ></textarea>
-          </div>
-        </div>
-
-        <div class="modal-actions">
-          <button type="button" class="btn btn-secondary" @click="closePractice">
-            <i class="ri-close-line"></i> 取消
-          </button>
-          <button type="button" class="btn btn-primary" @click="submitAnswer" :disabled="!userAnswer || isSubmitting">
-            <i v-if="isSubmitting" class="ri-loader-4-line spin"></i>
-            <i v-else class="ri-check-line"></i>
-            {{ isSubmitting ? '提交中…' : '提交答案' }}
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- 结果弹窗 -->
-    <div
-      v-if="showResultModal"
-      class="modal-mask"
-      @click.self="closeResult"
-    >
-      <div class="modal-box" role="dialog" aria-modal="true">
-        <div class="modal-head">
-          <h3>练习结果</h3>
-          <button type="button" class="modal-x" @click="closeResult">
-            <i class="ri-close-line"></i>
-          </button>
-        </div>
-
-        <div class="result-content">
-          <div class="result-icon" :class="isCorrect ? 'correct' : 'incorrect'">
-            <i :class="isCorrect ? 'ri-checkbox-circle-fill' : 'ri-close-circle-fill'"></i>
-          </div>
-          <div class="result-text">
-            <p class="result-title">{{ isCorrect ? '回答正确！' : '回答错误' }}</p>
-            <p class="result-hint" v-if="!isCorrect">正确答案：{{ correctAnswer }}</p>
-          </div>
-        </div>
-
-        <div class="modal-actions">
-          <button type="button" class="btn btn-primary" @click="closeResult">
-            <i class="ri-check-line"></i> 确定
-          </button>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import DropdownSelect from '@/components/form/DropdownSelect.vue'
 import { useCourseStore } from '@/stores/course.store'
+import { useToast } from '@/composables/useToast'
 import { api } from '@/utils/request'
 
 interface Question {
@@ -244,15 +154,10 @@ const parseOptions = (optionsStr: string): Record<string, string> => {
 }
 
 const courseStore = useCourseStore()
+const router = useRouter()
+const toast = useToast()
 
 const selectedCourseId = ref<number | null>(null)
-const showPracticeModal = ref(false)
-const showResultModal = ref(false)
-const currentQuestion = ref<Question | null>(null)
-const userAnswer = ref<string>('')
-const isSubmitting = ref(false)
-const isCorrect = ref(false)
-const correctAnswer = ref('')
 const loading = ref(false)
 
 const questions = ref<Question[]>([])
@@ -312,40 +217,7 @@ const loadQuestions = async () => {
 }
 
 const startPractice = (question: Question) => {
-  currentQuestion.value = question
-  userAnswer.value = ''
-  showPracticeModal.value = true
-}
-
-const selectOption = (key: string) => {
-  userAnswer.value = key
-}
-
-const submitAnswer = async () => {
-  if (!currentQuestion.value || !userAnswer.value) return
-
-  isSubmitting.value = true
-  try {
-    const data: any = await api.post('/api/practice/submit', {
-      question_id: currentQuestion.value.id,
-      answer: userAnswer.value,
-    })
-    isCorrect.value = data.correct
-    correctAnswer.value = data.expected || '—'
-    showPracticeModal.value = false
-    showResultModal.value = true
-  } catch (error) {
-    console.error('提交失败:', error)
-    alert('提交失败，请稍后重试')
-  } finally {
-    isSubmitting.value = false
-  }
-}
-
-const closePractice = () => {
-  showPracticeModal.value = false
-  currentQuestion.value = null
-  userAnswer.value = ''
+  router.push({ name: 'PracticeQuestion', params: { questionId: question.id } })
 }
 
 const loadHistory = async () => {
@@ -366,9 +238,6 @@ const loadHistory = async () => {
 }
 
 const closeResult = () => {
-  showResultModal.value = false
-  currentQuestion.value = null
-  userAnswer.value = ''
   loadHistory()
 }
 

@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session as OrmSession
 
 from app.core.database import get_db
+from app.core.course_deps import course_role
 from app.core.deps import current_user
 from app.models import models as m
 
@@ -37,6 +38,11 @@ def submit(body: SubmitIn, request: Request, db: OrmSession = Depends(get_db),
     q = db.get(m.Question, body.question_id)
     if not q:
         raise HTTPException(status_code=404, detail="题目不存在")
+    # 校验选课归属
+    if user.role != "admin":
+        role = course_role(user.id, q.course_id, db)
+        if role is None:
+            raise HTTPException(status_code=403, detail="未选课，无法答题")
     verdict = _judge(q, body.answer)
     db.add(m.LearningRecord(
         student_id=user.id,
