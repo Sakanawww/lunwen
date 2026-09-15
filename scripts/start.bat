@@ -1,46 +1,41 @@
 @echo off
-REM
-REM 课程助教系统 - Windows 启动脚本 (Batch)
-REM
-REM 使用方法:
-REM   start.bat start      - 启动服务
-REM   start.bat stop       - 停止服务
-REM   start.bat restart    - 重启服务
-REM   start.bat status     - 查看状态
-REM   start.bat logs       - 查看日志
-REM   start.bat daemon     - 守护进程模式
-REM
+chcp 65001 >nul 2>&1
+REM Course TA System - Windows startup script
+REM Double-click to start; or pass: start / stop / restart / status / logs
 
 setlocal enabledelayedexpansion
 
-REM 设置目录
+REM Set directories
 set "SCRIPT_DIR=%~dp0"
 set "PROJECT_DIR=%SCRIPT_DIR%.."
 
-REM 检查 Python
+REM Check Python
 python --version >nul 2>&1
 if errorlevel 1 (
     echo [ERROR] 未找到 Python，请先安装 Python 3.10+
     echo 下载地址：https://www.python.org/downloads/
+    pause
     exit /b 1
 )
 
-REM 检查 Node.js
+REM Check Node.js
 node --version >nul 2>&1
 if errorlevel 1 (
     echo [ERROR] 未找到 Node.js，请先安装 Node.js 18+
     echo 下载地址：https://nodejs.org/
+    pause
     exit /b 1
 )
 
-REM 检查虚拟环境
+REM Check venv
 if not exist "%PROJECT_DIR%\.venv\Scripts\activate.bat" (
     echo [ERROR] 未找到虚拟环境 .venv
     echo 请先运行：python -m venv .venv ^&^& .venv\Scripts\activate ^&^& pip install -r requirements.txt
+    pause
     exit /b 1
 )
 
-REM 检查 node_modules
+REM Check node_modules
 if not exist "%PROJECT_DIR%\frontend\node_modules" (
     echo [WARN] frontend/node_modules 不存在，正在安装依赖...
     cd /d "%PROJECT_DIR%\frontend"
@@ -48,14 +43,14 @@ if not exist "%PROJECT_DIR%\frontend\node_modules" (
     cd /d "%SCRIPT_DIR%"
 )
 
-REM 激活虚拟环境
+REM Activate venv
 call "%PROJECT_DIR%\.venv\Scripts\activate.bat"
 
-REM 获取命令
+REM Default command is start (double-click to launch)
 set "COMMAND=%~1"
-if "%COMMAND%"=="" set "COMMAND=help"
+if "%COMMAND%"=="" set "COMMAND=start"
 
-REM 执行命令
+REM Run command
 if /i "%COMMAND%"=="start" (
     python "%SCRIPT_DIR%start.py" start
 ) else if /i "%COMMAND%"=="stop" (
@@ -66,29 +61,17 @@ if /i "%COMMAND%"=="start" (
     python "%SCRIPT_DIR%start.py" status
 ) else if /i "%COMMAND%"=="logs" (
     python "%SCRIPT_DIR%start.py" logs %2 %3 %4
-) else if /i "%COMMAND%"=="daemon" (
-    echo [INFO] Windows 不支持 daemon 模式，请直接使用 start 命令
-    echo [INFO] 如需后台运行，可使用：start /B python start.py daemon
-) else if /i "%COMMAND%"=="help" (
-    echo 课程助教系统 - Windows 启动脚本
-    echo.
-    echo 使用方法:
-    echo   %~nx0 start      - 启动服务
-    echo   %~nx0 stop       - 停止服务
-    echo   %~nx0 restart    - 重启服务
-    echo   %~nx0 status     - 查看状态
-    echo   %~nx0 logs       - 查看日志
-    echo   %~nx0 daemon     - 守护进程模式 ^(不推荐^)
-    echo.
-    echo 示例:
-    echo   %~nx0 start                  - 启动服务
-    echo   %~nx0 logs                   - 查看日志
-    echo   %~nx0 restart                - 重启服务
 ) else (
     echo [ERROR] 未知命令：%COMMAND%
     echo.
-    echo 运行 '%~nx0 help' 查看帮助
-    exit /b 1
+    echo 可用命令: start / stop / restart / status / logs
+)
+
+if "%COMMAND%"=="start" (
+    echo.
+    echo 浏览器访问 http://localhost:5173 即可使用
+    echo 按任意键关闭此窗口（服务继续在后台运行）
+    pause >nul
 )
 
 endlocal
